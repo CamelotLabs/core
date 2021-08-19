@@ -111,7 +111,6 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   // if fee is on, mint liquidity equivalent to ownerFeeShare of the growth in sqrt(k)
   function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
     address feeTo = IExcaliburV2Factory(factory).feeTo();
-    uint ownerFeeShare = IExcaliburV2Factory(factory).ownerFeeShare();
     feeOn = feeTo != address(0);
     uint _kLast = kLast;
     // gas savings
@@ -120,7 +119,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
         uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
         uint rootKLast = Math.sqrt(_kLast);
         if (rootK > rootKLast) {
-          uint d = (FEE_DENOMINATOR / ownerFeeShare).sub(1);
+          uint d = (FEE_DENOMINATOR / IExcaliburV2Factory(factory).ownerFeeShare()).sub(1);
           uint numerator = totalSupply.mul(rootK.sub(rootKLast));
           uint denominator = rootK.mul(d).add(rootKLast);
           uint liquidity = numerator / denominator;
@@ -201,22 +200,24 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint balance0;
     uint balance1;
     { // scope for _token{0,1}, avoids stack too deep errors
-    address _token0 = token0;
-    address _token1 = token1;
-    require(to != _token0 && to != _token1, 'ExcaliburV2Pair: INVALID_TO');
-    if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-    if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-    if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
-    balance0 = IERC20(_token0).balanceOf(address(this));
-    balance1 = IERC20(_token1).balanceOf(address(this));
+      address _token0 = token0;
+      address _token1 = token1;
+      require(to != _token0 && to != _token1, 'ExcaliburV2Pair: INVALID_TO');
+      if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+      if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+      if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
+      balance0 = IERC20(_token0).balanceOf(address(this));
+      balance1 = IERC20(_token1).balanceOf(address(this));
     }
     uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
     uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'ExcaliburV2Pair: INSUFFICIENT_INPUT_AMOUNT');
     { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-    uint balance0Adjusted = balance0.mul(FEE_DENOMINATOR).sub(amount0In.mul(feeAmount));
-    uint balance1Adjusted = balance1.mul(FEE_DENOMINATOR).sub(amount1In.mul(feeAmount));
-    require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(FEE_DENOMINATOR**2), 'ExcaliburV2Pair: K');
+      uint feeDenominator = FEE_DENOMINATOR;
+      uint _feeAmount = feeAmount;
+      uint balance0Adjusted = balance0.mul(feeDenominator).sub(amount0In.mul(_feeAmount));
+      uint balance1Adjusted = balance1.mul(feeDenominator).sub(amount1In.mul(_feeAmount));
+      require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(feeDenominator**2), 'ExcaliburV2Pair: K');
     }
 
     _update(balance0, balance1, _reserve0, _reserve1);
@@ -232,6 +233,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint balance0;
     uint balance1;
     uint _feeAmount = hasPaidFeesWithEXC ? (50 * feeAmount) / 100 : feeAmount;
+    uint feeDenominator = FEE_DENOMINATOR;
     {// scope for _token{0,1}, avoids stack too deep errors
       address _token0 = token0;
       address _token1 = token1;
@@ -247,20 +249,22 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint amount1In = balance1 > reserve1 - amount1Out ? balance1 - (reserve1 - amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'ExcaliburV2Pair: INSUFFICIENT_INPUT_AMOUNT');
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      uint balance0Adjusted = balance0.mul(FEE_DENOMINATOR).sub(amount0In.mul(_feeAmount));
-      uint balance1Adjusted = balance1.mul(FEE_DENOMINATOR).sub(amount1In.mul(_feeAmount));
-      require(balance0Adjusted.mul(balance1Adjusted) >= uint(reserve0).mul(reserve1).mul(FEE_DENOMINATOR ** 2), 'ExcaliburV2Pair: K');
+      uint balance0Adjusted = balance0.mul(feeDenominator).sub(amount0In.mul(_feeAmount));
+      uint balance1Adjusted = balance1.mul(feeDenominator).sub(amount1In.mul(_feeAmount));
+      require(balance0Adjusted.mul(balance1Adjusted) >= uint(reserve0).mul(reserve1).mul(feeDenominator ** 2), 'ExcaliburV2Pair: K');
     }
     {// scope for referer management
+      address _token0 = token0;
+      address _token1 = token1;
       uint referrerInputFeeAmount = IExcaliburV2Factory(factory).referrersFeeShare(referrer).mul(_feeAmount);
       if (referrerInputFeeAmount > 0) {
         if (amount0In > 0) {
-          _safeTransfer(token0, to, amount0In.mul(referrerInputFeeAmount) / FEE_DENOMINATOR);
-          balance0 = IERC20(token0).balanceOf(address(this));
+          _safeTransfer(_token0, to, amount0In.mul(referrerInputFeeAmount) / feeDenominator);
+          balance0 = IERC20(_token0).balanceOf(address(this));
         }
         if (amount1In > 0) {
-          _safeTransfer(token1, to, amount1In.mul(referrerInputFeeAmount) / FEE_DENOMINATOR);
-          balance1 = IERC20(token1).balanceOf(address(this));
+          _safeTransfer(_token1, to, amount1In.mul(referrerInputFeeAmount) / feeDenominator);
+          balance1 = IERC20(_token1).balanceOf(address(this));
         }
       }
     }
