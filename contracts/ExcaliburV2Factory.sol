@@ -4,6 +4,7 @@ import './interfaces/IExcaliburV2Factory.sol';
 import './ExcaliburV2Pair.sol';
 
 contract ExcaliburV2Factory is IExcaliburV2Factory {
+    bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(ExcaliburV2Pair).creationCode));
 
     address public owner;
     address public feeTo;

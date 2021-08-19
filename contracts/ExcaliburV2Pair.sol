@@ -108,7 +108,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     emit Sync(reserve0, reserve1);
   }
 
-  // if fee is on, mint liquidity equivalent to ownerFeeShare of the growth in sqrt(k)
+  // if fee is on, mint liquidity equivalent to "factory.ownerFeeShare()" of the growth in sqrt(k)
   function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
     address feeTo = IExcaliburV2Factory(factory).feeTo();
     feeOn = feeTo != address(0);
@@ -225,15 +225,14 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   // this low-level function should be called from a contract which performs important safety checks
-  function swap(uint amount0Out, uint amount1Out, address to, address referrer, bool hasPaidFeesWithEXC) external lock {
+  function swap2(uint amount0Out, uint amount1Out, address to, address referrer, bool hasPaidFeesWithEXC) external lock {
     require(amount0Out > 0 || amount1Out > 0, 'ExcaliburV2Pair: INSUFFICIENT_OUTPUT_AMOUNT');
     require(amount0Out < reserve0 && amount1Out < reserve1, 'ExcaliburV2Pair: INSUFFICIENT_LIQUIDITY');
-    if (msg.sender != IExcaliburV2Factory(factory).trustableRouter()) hasPaidFeesWithEXC = false;
-
     uint balance0;
     uint balance1;
-    uint _feeAmount = hasPaidFeesWithEXC ? (50 * feeAmount) / 100 : feeAmount;
+    uint _feeAmount = feeAmount;
     uint feeDenominator = FEE_DENOMINATOR;
+    if (msg.sender == IExcaliburV2Factory(factory).trustableRouter() && hasPaidFeesWithEXC) _feeAmount = (50 * _feeAmount) / 100;
     {// scope for _token{0,1}, avoids stack too deep errors
       address _token0 = token0;
       address _token1 = token1;
@@ -254,16 +253,16 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
       require(balance0Adjusted.mul(balance1Adjusted) >= uint(reserve0).mul(reserve1).mul(feeDenominator ** 2), 'ExcaliburV2Pair: K');
     }
     {// scope for referer management
-      address _token0 = token0;
-      address _token1 = token1;
       uint referrerInputFeeAmount = IExcaliburV2Factory(factory).referrersFeeShare(referrer).mul(_feeAmount);
       if (referrerInputFeeAmount > 0) {
         if (amount0In > 0) {
-          _safeTransfer(_token0, to, amount0In.mul(referrerInputFeeAmount) / feeDenominator);
+          address _token0 = token0;
+          _safeTransfer(_token0, referrer, amount0In.mul(referrerInputFeeAmount) / (feeDenominator ** 2));
           balance0 = IERC20(_token0).balanceOf(address(this));
         }
         if (amount1In > 0) {
-          _safeTransfer(_token1, to, amount1In.mul(referrerInputFeeAmount) / feeDenominator);
+          address _token1 = token1;
+          _safeTransfer(_token1, referrer, amount1In.mul(referrerInputFeeAmount) / (feeDenominator ** 2));
           balance1 = IERC20(_token1).balanceOf(address(this));
         }
       }
@@ -284,8 +283,10 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   // force reserves to match balances
   function sync() external lock {
-    require(totalSupply > 0, "ExcaliburV2Pair: liquidity ratio not initialized");
-    _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+    uint token0Balance = IERC20(token0).balanceOf(address(this));
+    uint token1Balance = IERC20(token1).balanceOf(address(this));
+    require(token0Balance != 0 && token1Balance != 0, "ExcaliburV2Pair: liquidity ratio not initialized");
+    _update(token0Balance, token1Balance, reserve0, reserve1);
   }
 
   /**

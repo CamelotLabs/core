@@ -1,6 +1,5 @@
 import chai, { expect } from 'chai'
 import { Contract } from 'ethers'
-import { AddressZero } from 'ethers/constants'
 import { bigNumberify } from 'ethers/utils'
 import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 
@@ -68,7 +67,7 @@ describe('ExcaliburV2Factory', () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(...TEST_ADDRESSES)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3390879)
+    expect(receipt.gasUsed).to.eq(3403523)
   })
 
   it('setFeeTo', async () => {

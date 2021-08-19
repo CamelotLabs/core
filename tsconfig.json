@@ -4,6 +4,8 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["node", "truffle-typings", "mocha"],
+    "typeRoots": ["./node_modules/@types", "./types"]
   }
 }
