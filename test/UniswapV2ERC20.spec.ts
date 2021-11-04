@@ -7,7 +7,7 @@ import { ecsign } from 'ethereumjs-util'
 
 import { expandTo18Decimals, getApprovalDigest } from './shared/utilities'
 
-import ERC20 from '../build_test/ERC20.json'
+import ERC20 from '../build/contracts/ERC20.json'
 
 chai.use(solidity)
 

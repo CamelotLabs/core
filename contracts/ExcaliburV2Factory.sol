@@ -9,21 +9,18 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     address public owner;
     address public feeTo;
     
-    uint public constant FEE_DENOMINATOR = 100000;
+    //uint public constant FEE_DENOMINATOR = 100000;
     uint public constant OWNER_FEE_SHARE_MAX = 50000; // 50%
     uint public ownerFeeShare = 50000; // default value = 50%
 
     uint public constant REFERER_FEE_SHARE_MAX = 20000; // 20%
     mapping(address => uint) public referrersFeeShare; // fees are taken from the user input
 
-    address public trustableRouter;
-
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
     event OwnerFeeShareUpdated(uint prevOwnerFeeShare, uint ownerFeeShare);
-    event TrustableRouterAddressUpdated(address prevTrustableRouter, address newTrustableRouter);
     event ReferrerFeeShareUpdated(address referrer, uint prevReferrerFeeShare, uint referrerFeeShare);
 
     constructor(address feeTo_) public {
@@ -80,16 +77,5 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
         uint prevReferrerFeeShare = referrersFeeShare[referrer];
         referrersFeeShare[referrer] = referrerFeeShare;
         emit ReferrerFeeShareUpdated(referrer, prevReferrerFeeShare, referrerFeeShare);
-    }
-
-    /**
-    * @dev update the 'trustable router address'
-    *
-    * If set to address(0) deactivate the swap fees discount when user's paid a % of swap fees in EXC
-    */
-    function setTrustableRouterAddress(address trustableRouter_) external onlyOwner {
-        address prevTrustableRouterAddress = trustableRouter;
-        trustableRouter = trustableRouter_;
-        emit TrustableRouterAddressUpdated(prevTrustableRouterAddress, trustableRouter_);
     }
 }

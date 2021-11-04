@@ -37,9 +37,7 @@
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
     "lint:fix": "yarn prettier ./test/*.ts --write",
-    "clean": "rimraf ./build_/",
-    "precompile": "yarn clean",
-    "compile": "waffle .waffle.json",
+    "compile": "truffle compile",
     "pretest": "yarn compile",
     "test": "mocha",
     "prepublishOnly": "yarn test"
@@ -47,7 +45,6 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "@typechain/truffle-v5": "^5.0.0",
-    "excalibur-core": "../core",
     "pbkdf2": "^3.1.2"
   }
 }

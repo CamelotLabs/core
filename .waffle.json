@@ -1,5 +1,5 @@
 {
-  "compilerVersion": "./node_modules/solc",
+  "compilerVersion": "0.5.16",
   "outputType": "all",
   "outputDirectory": "./build_test",
   "compilerOptions": {

@@ -6,7 +6,7 @@ import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 import { getCreate2Address } from './shared/utilities'
 import { factoryFixture } from './shared/fixtures'
 
-import ExcaliburV2Pair from '../build_test/ExcaliburV2Pair.json'
+import ExcaliburV2Pair from '../build/contracts/ExcaliburV2Pair.json'
 
 chai.use(solidity)
 
@@ -37,7 +37,7 @@ describe('ExcaliburV2Factory', () => {
   })
 
   async function createPair(tokens: [string, string]) {
-    const bytecode = `0x${ExcaliburV2Pair.evm.bytecode.object}`
+    const bytecode = `${ExcaliburV2Pair.bytecode}`
     const create2Address = getCreate2Address(factory.address, tokens, bytecode)
     await expect(factory.createPair(...tokens))
       .to.emit(factory, 'PairCreated')
@@ -67,7 +67,7 @@ describe('ExcaliburV2Factory', () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(...TEST_ADDRESSES)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3403523)
+    expect(receipt.gasUsed).to.eq(3149429)
   })
 
   it('setFeeTo', async () => {

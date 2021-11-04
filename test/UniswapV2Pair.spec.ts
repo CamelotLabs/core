@@ -113,93 +113,6 @@ describe('ExcaliburV2Pair', () => {
     })
   })
 
-  swapTestCases.forEach((swapTestCase, i) => {
-    it(`swapv2:getInputPrice:${i}`, async () => {
-      const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swapTestCase
-      await pair.setFeeAmount(feeAmount)
-      await addLiquidity(token0Amount, token1Amount)
-      await token0.transfer(pair.address, swapAmount)
-
-      // let expectedOutputNumerator = bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount).mul(token1Amount)
-      // let expectedOutputDenominator = token0Amount.mul(100000).add(bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount))
-      // let expectedOutput = expectedOutputNumerator.div(expectedOutputDenominator)
-      // console.log(expectedOutput.toString())
-
-      await expect(
-        pair.swap2(0, expectedOutputAmount.add(1), wallet.address, other.address, false, overrides)
-      ).to.be.revertedWith('ExcaliburV2Pair: K')
-      await pair.swap2(0, expectedOutputAmount, wallet.address, other.address, false, overrides)
-    })
-  })
-
-  const swap2EXCFeePaidTestCases: BigNumber[][] = [
-    [1, 5, 10, '300', '1664582812369759106'],
-    [1, 10, 5, '300', '453925535300268218'],
-    [2, 5, 10, '300', '2854080320137201657'],
-    [2, 10, 5, '300', '832291406184879553'],
-    [1, 10, 10, '300', '907851070600536436'],
-    [1, 100, 100, '300', '988628543988277053'],
-    [1, 1000, 1000, '300', '997503992263724670'],
-
-    [1, 5, 10, '150', '1665624869775388590'],
-    [1, 10, 5, '150', '454235516057913039'],
-    [2, 5, 10, '150', '2855611916839322712'],
-    [2, 10, 5, '150', '832812434887694295'],
-    [1, 10, 10, '150', '908471032115826079'],
-    [1, 100, 100, '150', '989363782404324784'],
-    [1, 1000, 1000, '150', '998252496193178965'],
-
-    [1, 5, 10, '2000', '1652754590984974958'],
-    [1, 10, 5, '2000', '450409463148316651'],
-    [2, 5, 10, '2000', '2836676217765042979'],
-    [2, 10, 5, '2000', '826377295492487479'],
-    [1, 10, 10, '2000', '900818926296633303'],
-    [1, 100, 100, '2000', '980295078720665412'],
-    [1, 1000, 1000, '2000', '989020869339354039']
-  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
-  swap2EXCFeePaidTestCases.forEach((swap2EXCFeePaidTestCases, i) => {
-    it(`swapv2:getInputPrice:${i}`, async () => {
-      const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swap2EXCFeePaidTestCases
-      await pair.setFeeAmount(feeAmount)
-      await addLiquidity(token0Amount, token1Amount)
-      await token0.transfer(pair.address, swapAmount)
-
-      // let expectedOutputNumerator = bigNumberify(100000-feeAmount.div(2).toNumber()).mul(swapAmount).mul(token1Amount)
-      // let expectedOutputDenominator = token0Amount.mul(100000).add(bigNumberify(100000-feeAmount.div(2).toNumber()).mul(swapAmount))
-      // let expectedOutput = expectedOutputNumerator.div(expectedOutputDenominator)
-      // console.log(expectedOutput.toString())
-
-      await expect(
-        pair.swap2(0, expectedOutputAmount, wallet.address, other.address, true, overrides)
-      ).to.be.revertedWith('ExcaliburV2Pair: K')
-
-      await factory.setTrustableRouterAddress(wallet.address)
-      await expect(
-        pair.swap2(0, expectedOutputAmount.add(1), wallet.address, other.address, true, overrides)
-      ).to.be.revertedWith('ExcaliburV2Pair: K')
-      await pair.swap2(0, expectedOutputAmount, wallet.address, other.address, true, overrides)
-      await expect(await token0.balanceOf(other.address)).to.be.eq(0)
-    })
-  })
-
-  swap2EXCFeePaidTestCases.forEach((swap2EXCFeePaidTestCases, i) => {
-    it(`swapv2:getInputPrice:${i}`, async () => {
-      const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swap2EXCFeePaidTestCases
-      await pair.setFeeAmount(feeAmount)
-      await addLiquidity(token0Amount, token1Amount)
-      await token0.transfer(pair.address, swapAmount)
-      await factory.setTrustableRouterAddress(wallet.address)
-      await factory.setRefererFeeShare(other.address, 20000)
-
-      const expectedReferrerFees = swapAmount
-        .mul(feeAmount.div(2))
-        .mul(20000)
-        .div(100000 ** 2)
-      await pair.swap2(0, expectedOutputAmount, wallet.address, other.address, true, overrides)
-      await expect(await token0.balanceOf(other.address)).to.be.eq(expectedReferrerFees)
-    })
-  })
-
   const optimisticTestCases: BigNumber[][] = [
     ['997000000000000000', 5, 10, '300', 1], // given amountIn, amountOut = floor(amountIn * .997)
     ['997000000000000000', 10, 5, '300', 1],
@@ -299,7 +212,7 @@ describe('ExcaliburV2Pair', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(74338)
+    expect(receipt.gasUsed).to.eq(79406)
   })
 
   it('burn', async () => {
