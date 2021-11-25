@@ -64,7 +64,12 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     function setFeeTo(address _feeTo) external onlyOwner {
         feeTo = _feeTo;
     }
-    
+
+    /**
+     * @dev Updates the share of fees attributed to the owner (FeeManager)
+     *
+     * Must only be called by owner
+     */
     function setOwnerFeeShare(uint newOwnerFeeShare) external onlyOwner {
         require(newOwnerFeeShare <= OWNER_FEE_SHARE_MAX, "ExcaliburV2Factory: ownerFeeShare mustn't exceed maximum");
         uint prevOwnerFeeShare = ownerFeeShare;
@@ -72,6 +77,11 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
         emit OwnerFeeShareUpdated(prevOwnerFeeShare, ownerFeeShare);
     }
 
+    /**
+     * @dev Updates the share of fees attributed to the given referrer when a swap went through him
+     *
+     * Must only be called by owner
+     */
     function setRefererFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
         require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "ExcaliburV2Factory: referrerFeeShare mustn't exceed maximum");
         uint prevReferrerFeeShare = referrersFeeShare[referrer];
