@@ -8,7 +8,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
 
     address public owner;
     address public feeTo;
-    
+
     //uint public constant FEE_DENOMINATOR = 100000;
     uint public constant OWNER_FEE_SHARE_MAX = 50000; // 50%
     uint public ownerFeeShare = 50000; // default value = 50%
@@ -19,8 +19,10 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 
+    event FeeToTransferred(address indexed prevFeeTo, address indexed newFeeTo);
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
     event OwnerFeeShareUpdated(uint prevOwnerFeeShare, uint ownerFeeShare);
+    event OwnershipTransferred(address indexed prevOwner, address indexed newOwner);
     event ReferrerFeeShareUpdated(address referrer, uint prevReferrerFeeShare, uint referrerFeeShare);
 
     constructor(address feeTo_) public {
@@ -58,10 +60,13 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     }
 
     function setOwner(address _owner) external onlyOwner {
+        require(_owner != address(0), "ExcaliburV2Factory: zero address");
+        emit OwnershipTransferred(owner, _owner);
         owner = _owner;
     }
 
     function setFeeTo(address _feeTo) external onlyOwner {
+        emit FeeToTransferred(feeTo, _feeTo);
         feeTo = _feeTo;
     }
 
