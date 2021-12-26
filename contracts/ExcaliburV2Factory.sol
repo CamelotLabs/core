@@ -76,6 +76,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      * Must only be called by owner
      */
     function setOwnerFeeShare(uint newOwnerFeeShare) external onlyOwner {
+        require(newOwnerFeeShare > 0, "ExcaliburV2Factory: ownerFeeShare mustn't exceed minimum");
         require(newOwnerFeeShare <= OWNER_FEE_SHARE_MAX, "ExcaliburV2Factory: ownerFeeShare mustn't exceed maximum");
         uint prevOwnerFeeShare = ownerFeeShare;
         ownerFeeShare = newOwnerFeeShare;
