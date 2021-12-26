@@ -51,6 +51,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     require(success && (data.length == 0 || abi.decode(data, (bool))), 'ExcaliburV2Pair: TRANSFER_FAILED');
   }
 
+  event DrainWrongToken(address indexed token, address to);
   event FeeAmountUpdated(uint prevFeeAmount, uint feeAmount);
   event Mint(address indexed sender, uint amount0, uint amount1);
   event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
@@ -272,5 +273,6 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburV2Pair: only factory's owner");
     require(token != token0 && token != token1, "ExcaliburV2Pair: invalid token");
     _safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
+    emit DrainWrongToken(token, to);
   }
 }
