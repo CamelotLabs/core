@@ -41,8 +41,8 @@ export function getCreate2Address(
   const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
   const create2Inputs = [
     '0xff',
-    factoryAddress,
-    keccak256(solidityPack(['address', 'address'], [token0, token1])),
+    getAddress(factoryAddress),
+    keccak256(solidityPack(['address', 'address'], [getAddress(token0), getAddress(token1)])),
     keccak256(bytecode)
   ]
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join('')}`

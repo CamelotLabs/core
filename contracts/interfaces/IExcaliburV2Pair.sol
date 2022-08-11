@@ -35,15 +35,13 @@ interface IExcaliburV2Pair {
 
     function MINIMUM_LIQUIDITY() external pure returns (uint);
     function factory() external view returns (address);
-    function feeAmount() external view returns (uint);
     function token0() external view returns (address);
     function token1() external view returns (address);
-    function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-    function price0CumulativeLast() external view returns (uint);
-    function price1CumulativeLast() external view returns (uint);
+    function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint16 token0feeAmount, uint16 token1FeeAmount);
+    function getAmountOut(uint amountIn, address tokenIn) external view returns (uint);
     function kLast() external view returns (uint);
 
-    function setFeeAmount(uint newFeeAmount) external;
+    function setFeeAmount(uint16 token0FeeAmount, uint16 token1FeeAmount) external;
     function mint(address to) external returns (uint liquidity);
     function burn(address to) external returns (uint amount0, uint amount1);
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;

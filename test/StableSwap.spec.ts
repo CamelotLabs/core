@@ -15,7 +15,7 @@ const overrides = {
   gasLimit: 9999999
 }
 
-describe('ExcaliburV2Pair', () => {
+describe('StableSwap', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
@@ -34,6 +34,8 @@ describe('ExcaliburV2Pair', () => {
     token0 = fixture.token0
     token1 = fixture.token1
     pair = fixture.pair
+
+    await pair.setStableSwap(1)
   })
 
   it('mint', async () => {
@@ -69,42 +71,39 @@ describe('ExcaliburV2Pair', () => {
   }
 
   const swapTestCases: BigNumber[][] = [
-    [1, 5, 10, '300', '1662497915624478906'],
-    [1, 10, 5, '300', '453305446940074565'],
-    [2, 5, 10, '300', '2851015155847869602'],
-    [2, 10, 5, '300', '831248957812239453'],
-    [1, 10, 10, '300', '906610893880149131'],
-    [1, 100, 100, '300', '987158034397061298'],
-    [1, 1000, 1000, '300', '996006981039903216'],
+    [1, 5, 10, '300', '1037735021512657082'],
+    [1, 10, 5, '300', '879102952348394399'],
+    [2, 5, 10, '300', '2040447202689539242'],
+    [2, 10, 5, '300', '1641099839970880405'],
+    [1, 10, 10, '300', '996506480231247732'],
+    [1, 100, 100, '300', '996999505973545383'],
+    [1, 1000, 1000, '300', '996999999505973054'],
 
-    [1, 5, 10, '150', '1664582812369759106'],
-    [1, 10, 5, '150', '453925535300268218'],
-    [2, 5, 10, '150', '2854080320137201657'],
-    [2, 10, 5, '150', '832291406184879553'],
-    [1, 10, 10, '150', '907851070600536436'],
-    [1, 100, 100, '150', '988628543988277053'],
-    [1, 1000, 1000, '150', '997503992263724670'],
+    [1, 5, 10, '150', '1039258534528237632'],
+    [1, 10, 5, '150', '880344816931417981'],
+    [2, 5, 10, '150', '2043448803392768537'],
+    [2, 10, 5, '150', '1643192941133600364'],
+    [1, 10, 10, '150', '998003505824045195'],
+    [1, 100, 100, '150', '998499502993753372'],
+    [1, 1000, 1000, '150', '998499999502993257'],
 
-    [1, 5, 10, '2000', '1638795986622073578'],
-    [1, 10, 5, '2000', '446265938069216757'],
-    [2, 5, 10, '2000', '2816091954022988505'],
-    [2, 10, 5, '2000', '819397993311036789'],
-    [1, 10, 10, '2000', '892531876138433515'],
-    [1, 100, 100, '2000', '970489205783323430'],
-    [1, 1000, 1000, '2000', '979040540270534875']
+    [1, 5, 10, '2000', '1020463437669921196'],
+    [1, 10, 5, '2000', '865009639720007212'],
+    [2, 5, 10, '2000', '2006426863309605048'],
+    [2, 10, 5, '2000', '1617292406052557856'],
+    [1, 10, 10, '2000', '979539265327886123'],
+    [1, 100, 100, '2000', '979999538816355657'],
+    [1, 1000, 1000, '2000', '979999999538815920']
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
 
   swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
       const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swapTestCase
-      await pair.setFeeAmount(feeAmount, 10)
+      await pair.setFeeAmount(feeAmount, 100)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
 
-      // let expectedOutputNumerator = bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount).mul(token1Amount)
-      // let expectedOutputDenominator = token0Amount.mul(100000).add(bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount))
-      // let expectedOutput = expectedOutputNumerator.div(expectedOutputDenominator)
-      // console.log(expectedOutput.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
+      // console.log(expectedOutputAmount.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
 
       expect(await pair.getAmountOut(swapAmount, token0.address)).to.eq(expectedOutputAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
@@ -134,7 +133,7 @@ describe('ExcaliburV2Pair', () => {
     it(`optimistic:${i}`, async () => {
       const [outputAmount, token0Amount, token1Amount, feeAmount, inputAmount] = optimisticTestCase
 
-      await pair.setFeeAmount(feeAmount, 10)
+      await pair.setFeeAmount(feeAmount, 100)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
       await expect(pair.swap(outputAmount.add(1), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
@@ -145,6 +144,8 @@ describe('ExcaliburV2Pair', () => {
   })
 
   it('swap:token0', async () => {
+    await factory.setFeeTo(AddressZero) // Test without taking care of fees
+
     const token0Amount = expandTo18Decimals(5)
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
@@ -152,7 +153,7 @@ describe('ExcaliburV2Pair', () => {
     await pair.setFeeAmount(150, 1000)
 
     const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('1662497915624478906')
+    const expectedOutputAmount = bigNumberify('1037735021512657082')
     await token0.transfer(pair.address, swapAmount)
     await expect(pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides))
       .to.emit(token1, 'Transfer')
@@ -174,6 +175,8 @@ describe('ExcaliburV2Pair', () => {
   })
 
   it('swap:token1', async () => {
+    await factory.setFeeTo(AddressZero)  // Test without taking care of fees
+
     const token0Amount = expandTo18Decimals(5)
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
@@ -181,7 +184,7 @@ describe('ExcaliburV2Pair', () => {
     await pair.setFeeAmount(1000, 150)
 
     const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('453305446940074565')
+    const expectedOutputAmount = bigNumberify('879102952348394399')
     await token1.transfer(pair.address, swapAmount)
     await expect(pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides))
       .to.emit(token0, 'Transfer')
@@ -212,12 +215,12 @@ describe('ExcaliburV2Pair', () => {
     await pair.sync(overrides)
 
     const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('453305446940074565')
+    const expectedOutputAmount = bigNumberify('879102952348394399')
     await token1.transfer(pair.address, swapAmount)
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(66737)
+    expect(receipt.gasUsed).to.eq(90852)
   })
 
   it('burn', async () => {
@@ -249,42 +252,6 @@ describe('ExcaliburV2Pair', () => {
     expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(1000))
   })
 
-  // it('price{0,1}CumulativeLast', async () => {
-  //   await pair.setFeeAmount(300)
-  //   await factory.setOwnerFeeShare(16666)
-  //
-  //   const token0Amount = expandTo18Decimals(3)
-  //   const token1Amount = expandTo18Decimals(3)
-  //   await addLiquidity(token0Amount, token1Amount)
-  //
-  //   const blockTimestamp = (await pair.getReserves())[2]
-  //   await mineBlock(provider, blockTimestamp + 1)
-  //   await pair.sync(overrides)
-  //
-  //   const initialPrice = encodePrice(token0Amount, token1Amount)
-  //   expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
-  //   expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
-  //   expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 1)
-  //
-  //   const swapAmount = expandTo18Decimals(3)
-  //   await token0.transfer(pair.address, swapAmount)
-  //   await mineBlock(provider, blockTimestamp + 10)
-  //   // swap to a new price eagerly instead of syncing
-  //   await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
-  //
-  //   expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
-  //   expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
-  //   expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 10)
-  //
-  //   await mineBlock(provider, blockTimestamp + 20)
-  //   await pair.sync(overrides)
-  //
-  //   const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
-  //   expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
-  //   expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
-  //   expect((await pair.getReserves())[2]).to.eq(blockTimestamp + 20)
-  // })
-
   it('feeTo:off', async () => {
     await pair.setFeeAmount(300, 300)
     await factory.setFeeTo(AddressZero)
@@ -294,7 +261,7 @@ describe('ExcaliburV2Pair', () => {
     await addLiquidity(token0Amount, token1Amount)
 
     const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('996006981039903216')
+    const expectedOutputAmount = bigNumberify('996999999505973054')
     await token1.transfer(pair.address, swapAmount)
     await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
 
@@ -305,7 +272,7 @@ describe('ExcaliburV2Pair', () => {
   })
 
   it('feeTo:on', async () => {
-    await pair.setFeeAmount(1000, 300)
+    await pair.setFeeAmount(300, 300)
     await factory.setOwnerFeeShare(16666)
 
     await factory.setFeeTo(other.address)
@@ -315,19 +282,74 @@ describe('ExcaliburV2Pair', () => {
     await addLiquidity(token0Amount, token1Amount)
 
     const swapAmount = expandTo18Decimals(1)
-    const expectedOutputAmount = bigNumberify('996006981039903216')
+    const expectedOutputAmount = bigNumberify('996999999505973054')
     await token1.transfer(pair.address, swapAmount)
     await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+
+    // Fees directly minted to feeTo
+    expect(await token0.balanceOf(other.address)).to.eq(bigNumberify(0))
+    expect(await token1.balanceOf(other.address)).to.eq(bigNumberify(499980000000000)) // 0.003 * 0.16666 * 1 = 0,00049998
 
     const expectedLiquidity = expandTo18Decimals(1000)
     await pair.transfer(pair.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
     await pair.burn(wallet.address, overrides)
-    expect(await pair.totalSupply()).to.eq(MINIMUM_LIQUIDITY.add('249750499251388'))
-    expect(await pair.balanceOf(other.address)).to.eq('249750499251388')
+    expect(await pair.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
 
     // using 1000 here instead of the symbolic MINIMUM_LIQUIDITY because the amounts only happen to be equal...
     // ...because the initial liquidity amounts were equal
-    expect(await token0.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('249501683697445'))
-    expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1000).add('250000187312969'))
+    expect(await token0.balanceOf(pair.address)).to.eq(bigNumberify(1000))
+    expect(await token1.balanceOf(pair.address)).to.eq(bigNumberify(1001))
+  })
+
+  describe('From UNI to Stable', () => {
+
+    it('mint', async () => {
+      const token0Amount = expandTo18Decimals(1000)
+      const token1Amount = expandTo18Decimals(1000)
+
+      const expectedLiquidity = expandTo18Decimals(1000)
+      await addLiquidity(token0Amount, token1Amount)
+      expect(await pair.totalSupply()).to.eq(expectedLiquidity)
+
+      await pair.setStableSwap(0)
+      await addLiquidity(token0Amount, token1Amount)
+      // expect same amount of LP minted
+      expect(await pair.totalSupply()).to.eq(expectedLiquidity.mul('2'))
+    })
+
+    it('burn', async () => {
+      const token0Amount = expandTo18Decimals(1000)
+      const token1Amount = expandTo18Decimals(1000)
+
+      await addLiquidity(token0Amount, token1Amount)
+
+      await pair.transfer(pair.address, expandTo18Decimals(100))
+      await pair.burn(other.address, overrides)
+      expect(await token0.balanceOf(other.address)).to.eq(expandTo18Decimals(100))
+      expect(await token1.balanceOf(other.address)).to.eq(expandTo18Decimals(100))
+
+      await pair.setStableSwap(0)
+      await pair.transfer(pair.address, expandTo18Decimals(100))
+      await pair.burn(other.address, overrides)
+      expect(await token0.balanceOf(other.address)).to.eq(expandTo18Decimals(100).mul(2))
+      expect(await token1.balanceOf(other.address)).to.eq(expandTo18Decimals(100).mul(2))
+    })
+
+    it('swap', async () => {
+      const token0Amount = expandTo18Decimals(1000)
+      const token1Amount = expandTo18Decimals(1000)
+
+      await addLiquidity(token0Amount, token1Amount)
+
+      const swapAmount = expandTo18Decimals(1)
+      let expectedOutputAmount = await pair.getAmountOut(swapAmount, token1.address)
+      await token1.transfer(pair.address, swapAmount)
+      await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+
+      await pair.setStableSwap(0)
+      expectedOutputAmount = await pair.getAmountOut(swapAmount, token1.address)
+      await token1.transfer(pair.address, swapAmount)
+      await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+    })
   })
 })

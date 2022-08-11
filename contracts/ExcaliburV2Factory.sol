@@ -55,7 +55,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IExcaliburV2Pair(pair).initialize(token0, token1);
+        ExcaliburV2Pair(pair).initialize(token0, token1);
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
@@ -98,9 +98,15 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      * Must only be called by owner
      */
     function setRefererFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
+        require(referrer != address(0), "ExcaliburV2Factory: zero address");
         require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "ExcaliburV2Factory: referrerFeeShare mustn't exceed maximum");
         uint prevReferrerFeeShare = referrersFeeShare[referrer];
         referrersFeeShare[referrer] = referrerFeeShare;
         emit ReferrerFeeShareUpdated(referrer, prevReferrerFeeShare, referrerFeeShare);
+    }
+
+    function feeInfo() external view returns (uint _ownerFeeShare, address _feeTo) {
+        _ownerFeeShare = ownerFeeShare;
+        _feeTo = feeTo;
     }
 }

@@ -1,8 +1,8 @@
 pragma solidity =0.5.16;
 
 contract WETH {
-    string public name     = "Wrapped ETH";
-    string public symbol   = "WETH";
+    string public name     = "Wrapped FTM";
+    string public symbol   = "WFTM";
     uint8  public decimals = 18;
 
     event  Approval(address indexed src, address indexed guy, uint wad);
