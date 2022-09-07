@@ -8,6 +8,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
 
     address public owner;
     address public feeAmountOwner;
+    address public setStableOwner;
     address public feeTo;
 
     //uint public constant FEE_DENOMINATOR = 100000;
@@ -25,11 +26,13 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     event OwnerFeeShareUpdated(uint prevOwnerFeeShare, uint ownerFeeShare);
     event OwnershipTransferred(address indexed prevOwner, address indexed newOwner);
     event FeeAmountOwnershipTransferred(address indexed prevOwner, address indexed newOwner);
+    event SetStableOwnershipTransferred(address indexed prevOwner, address indexed newOwner);
     event ReferrerFeeShareUpdated(address referrer, uint prevReferrerFeeShare, uint referrerFeeShare);
 
     constructor(address feeTo_) public {
         owner = msg.sender;
         feeAmountOwner = msg.sender;
+        setStableOwner = msg.sender;
         feeTo = feeTo_;
     }
 
@@ -72,6 +75,13 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
         require(_feeAmountOwner != address(0), "ExcaliburV2Factory: zero address");
         emit FeeAmountOwnershipTransferred(feeAmountOwner, _feeAmountOwner);
         feeAmountOwner = _feeAmountOwner;
+    }
+
+    function setSetStableOwner(address _setStableOwner) external {
+        require(msg.sender == setStableOwner, "ExcaliburV2Factory: not setStableOwner");
+        require(_setStableOwner != address(0), "ExcaliburV2Factory: zero address");
+        emit SetStableOwnershipTransferred(setStableOwner, _setStableOwner);
+        setStableOwner = _setStableOwner;
     }
 
     function setFeeTo(address _feeTo) external onlyOwner {

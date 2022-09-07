@@ -32,7 +32,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
-  uint public stableSwap;
+  bool public stableSwap;
   uint private unlocked = 1;
   modifier lock() {
     require(unlocked == 1, 'ExcaliburPair: LOCKED');
@@ -55,7 +55,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   event DrainWrongToken(address indexed token, address to);
   event FeeAmountUpdated(uint16 token0FeeAmount, uint16 token1FeeAmount);
-  event SetStableSwap(uint prevStableSwap, uint stableSwap);
+  event SetStableSwap(bool prevStableSwap, bool stableSwap);
   event Mint(address indexed sender, uint amount0, uint amount1);
   event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
   event Swap(
@@ -97,8 +97,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     emit FeeAmountUpdated(token0FeeAmount, token1FeeAmount);
   }
 
-  function setStableSwap(uint stable) external {
-    require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
+  function setStableSwap(bool stable) external {
+    require(msg.sender == IExcaliburV2Factory(factory).setStableOwner(), "ExcaliburPair: only factory's setStableOwner");
 
     bool feeOn = _mintFee(reserve0, reserve1);
 
@@ -120,7 +120,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   // if fee is on, mint liquidity equivalent to "factory.ownerFeeShare()" of the growth in sqrt(k)
   // only for uni configuration
   function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
-    if(stableSwap == 1) return false;
+    if(stableSwap) return false;
 
     (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
     feeOn = feeTo != address(0);
@@ -261,7 +261,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
         }
       }
       //
-      if(stableSwap == 1){
+      if(stableSwap){
         (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
         if(feeTo != address(0)) {
           ownerFeeShare = FEE_DENOMINATOR.sub(referrerInputFeeShare).mul(ownerFeeShare);
@@ -278,7 +278,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   function _k(uint balance0, uint balance1) internal view returns (uint) {
-    if (stableSwap == 1) {
+    if (stableSwap) {
       uint _x = balance0 * 1e18 / _decimals0;
       uint _y = balance1 * 1e18 / _decimals1;
 //      uint _a = (_x * _y) / 1e18;
@@ -331,7 +331,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   function _getAmountOut(uint amountIn, address tokenIn, uint _reserve0, uint _reserve1) internal view returns (uint) {
-    if (stableSwap == 1) {
+    if (stableSwap) {
 
       _reserve0 = _reserve0 * 1e18 / _decimals0;
       _reserve1 = _reserve1 * 1e18 / _decimals1;

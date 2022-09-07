@@ -5,6 +5,7 @@ interface IExcaliburV2Factory {
 
     function owner() external view returns (address);
     function feeAmountOwner() external view returns (address);
+    function setStableOwner() external view returns (address);
     function feeTo() external view returns (address);
 
     function ownerFeeShare() external view returns (uint256);

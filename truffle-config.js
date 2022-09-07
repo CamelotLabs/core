@@ -42,22 +42,14 @@ module.exports = {
       port: 8545,            // Standard BSC port (default: none)
       network_id: "*",       // Any network (default: none)
     },
-//    testnet: {
-//      provider: () => new HDWalletProvider(MNENOMIC, `https://data-seed-prebsc-2-s3.binance.org:8545/`),
-//      network_id: 97,
-//      confirmations: 2,
-//      timeoutBlocks: 1200,
-//      skipDryRun: true,
-//      from: process.env.DEPLOYER_ADDRESS.toString().trim(),
-//    },
-//    bsc: {
-//      provider: () => new HDWalletProvider(MNENOMIC, `https://bsc-dataseed.binance.org/`),
-//      network_id: 56,
-//      confirmations: 10,
-//      timeoutBlocks: 1200,
-//      skipDryRun: true,
-//      from: process.env.DEPLOYER_ADDRESS.toString().trim(),
-//    },
+    arbitrum_testnet: {
+      provider: () => new HDWalletProvider(MNENOMIC, `https://goerli-rollup.arbitrum.io/rpc`),
+      network_id: 421613,
+      confirmations: 10,
+      timeoutBlocks: 1200,
+      skipDryRun: true,
+      from: process.env.DEPLOYER_ADDRESS_TESTNET.toString().trim(),
+    },
   },
 
   mocha: {
