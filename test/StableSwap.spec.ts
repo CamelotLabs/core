@@ -71,6 +71,9 @@ describe('StableSwap', () => {
   }
 
   const swapTestCases: BigNumber[][] = [
+
+    ['1037735021512657182', 5, 10, '300', '1075925078216824024'],
+
     [1, 5, 10, '300', '1037735021512657082'],
     [1, 10, 5, '300', '879102952348394399'],
     [2, 5, 10, '300', '2040447202689539242'],
@@ -93,7 +96,8 @@ describe('StableSwap', () => {
     [2, 10, 5, '2000', '1617292406052557856'],
     [1, 10, 10, '2000', '979539265327886123'],
     [1, 100, 100, '2000', '979999538816355657'],
-    [1, 1000, 1000, '2000', '979999999538815920']
+    [1, 1000, 1000, '2000', '979999999538815920'],
+
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
 
   swapTestCases.forEach((swapTestCase, i) => {
@@ -103,7 +107,7 @@ describe('StableSwap', () => {
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
 
-      // console.log(expectedOutputAmount.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
+      console.log(expectedOutputAmount.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
 
       expect(await pair.getAmountOut(swapAmount, token0.address)).to.eq(expectedOutputAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
