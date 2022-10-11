@@ -131,9 +131,9 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
         uint rootK = Math.sqrt(_k(uint(_reserve0), uint(_reserve1)));
         uint rootKLast = Math.sqrt(_kLast);
         if (rootK > rootKLast) {
-          uint d = (FEE_DENOMINATOR / ownerFeeShare).sub(1);
-          uint numerator = totalSupply.mul(rootK.sub(rootKLast));
-          uint denominator = rootK.mul(d).add(rootKLast);
+          uint d = (FEE_DENOMINATOR.mul(100) / ownerFeeShare).sub(100);
+          uint numerator = totalSupply.mul(rootK.sub(rootKLast)).mul(100);
+          uint denominator = rootK.mul(d).add(rootKLast.mul(100));
           uint liquidity = numerator / denominator;
           if (liquidity > 0) _mint(feeTo, liquidity);
         }
