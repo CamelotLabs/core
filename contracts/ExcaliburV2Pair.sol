@@ -246,9 +246,9 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint amount1In = tokensData.balance1 > _reserve1 - tokensData.amount1Out ? tokensData.balance1 - (_reserve1 - tokensData.amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'ExcaliburPair: INSUFFICIENT_INPUT_AMOUNT');
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      uint balance0Adjusted = tokensData.balance0.mul(FEE_DENOMINATOR).sub(amount0In.mul(_token0FeeAmount));
-      uint balance1Adjusted = tokensData.balance1.mul(FEE_DENOMINATOR).sub(amount1In.mul(_token1FeeAmount));
-      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0).mul(FEE_DENOMINATOR), uint(_reserve1).mul(FEE_DENOMINATOR)), 'ExcaliburPair: K');
+      uint balance0Adjusted = tokensData.balance0.sub(amount0In.mul(_token0FeeAmount) / FEE_DENOMINATOR);
+      uint balance1Adjusted = tokensData.balance1.sub(amount1In.mul(_token1FeeAmount) / FEE_DENOMINATOR);
+      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'ExcaliburPair: K');
     }
     {// scope for referer/stable fees management
       uint referrerInputFeeShare = referrer != address(0) ? IExcaliburV2Factory(factory).referrersFeeShare(referrer) : 0;
@@ -277,7 +277,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     emit Swap(msg.sender, amount0In, amount1In, tokensData.amount0Out, tokensData.amount1Out, to);
   }
 
-  function _k(uint balance0, uint balance1) internal view returns (uint) {
+  function _k(uint balance0, uint balance1) internal view returns (uint) { // 100612402227800000 // 107240138901100000
     if (stableSwap) {
       uint _x = balance0.mul(1e18) / _decimals0;
       uint _y = (balance1.mul(1e18)) / _decimals1;
@@ -322,14 +322,12 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   function getAmountOut(uint amountIn, address tokenIn) external view returns (uint) {
     uint16 feeAmount = tokenIn == token0 ? token0FeeAmount : token1FeeAmount;
-    return _getAmountOut(amountIn, tokenIn, reserve0, reserve1, feeAmount);
+    return _getAmountOut(amountIn, tokenIn, uint(reserve0), uint(reserve1), feeAmount);
   }
 
   function _getAmountOut(uint amountIn, address tokenIn, uint _reserve0, uint _reserve1, uint feeAmount) internal view returns (uint) {
     if (stableSwap) {
-      amountIn = (amountIn * FEE_DENOMINATOR) - (amountIn * feeAmount); // remove fee from amount received
-      _reserve0 = _reserve0 * FEE_DENOMINATOR;
-      _reserve1 = _reserve1 * FEE_DENOMINATOR;
+      amountIn = amountIn.sub(amountIn.mul(feeAmount) / FEE_DENOMINATOR); // remove fee from amount received
       uint xy = _k(_reserve0, _reserve1);
       _reserve0 = _reserve0 * 1e18 / _decimals0;
       _reserve1 = _reserve1 * 1e18 / _decimals1;
@@ -337,7 +335,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
       amountIn = tokenIn == token0 ? amountIn * 1e18 / _decimals0 : amountIn * 1e18 / _decimals1;
       uint y = reserveB - _get_y(amountIn + reserveA, xy, reserveB);
-      return y * (tokenIn == token0 ? _decimals1 : _decimals0) / 1e18 / FEE_DENOMINATOR;
+      return y * (tokenIn == token0 ? _decimals1 : _decimals0) / 1e18;
 
     } else {
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);

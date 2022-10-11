@@ -72,7 +72,7 @@ describe('StableSwap', () => {
 
   const swapTestCases: BigNumber[][] = [
 
-    ['1037735021512657182', 5, 10, '300', '1075925078216824024'],
+    ['1037735021512657182', 5, 10, '300', '1075925078216824025'],
 
     [1, 5, 10, '300', '1037735021512657082'],
     [1, 10, 5, '300', '879102952348394399'],
@@ -107,8 +107,6 @@ describe('StableSwap', () => {
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
 
-      console.log(expectedOutputAmount.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
-
       expect(await pair.getAmountOut(swapAmount, token0.address)).to.eq(expectedOutputAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
         'ExcaliburPair: K'
@@ -140,7 +138,7 @@ describe('StableSwap', () => {
       await pair.setFeeAmount(feeAmount, 100)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
-      await expect(pair.swap(outputAmount.add(1), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
+      await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
         'ExcaliburPair: K'
       )
       await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
@@ -224,7 +222,7 @@ describe('StableSwap', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(90852)
+    expect(receipt.gasUsed).to.eq(92240)
   })
 
   it('burn', async () => {

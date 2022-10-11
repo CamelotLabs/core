@@ -137,7 +137,7 @@ describe('ExcaliburV2Pair', () => {
       await pair.setFeeAmount(feeAmount, 10)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
-      await expect(pair.swap(outputAmount.add(1), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
+      await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
         'ExcaliburPair: K'
       )
       await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
@@ -217,7 +217,7 @@ describe('ExcaliburV2Pair', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(66737)
+    expect(receipt.gasUsed).to.eq(66265)
   })
 
   it('burn', async () => {
