@@ -32,7 +32,9 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
-  bool public stableSwap;
+  bool public stableSwap; // if set to true, defines pair type as stable
+  bool public pairTypeImmutable; // if set to true, stableSwap states cannot be updated anymore
+
   uint private unlocked = 1;
   modifier lock() {
     require(unlocked == 1, 'ExcaliburPair: LOCKED');
@@ -56,6 +58,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   event DrainWrongToken(address indexed token, address to);
   event FeeAmountUpdated(uint16 token0FeeAmount, uint16 token1FeeAmount);
   event SetStableSwap(bool prevStableSwap, bool stableSwap);
+  event SetPairTypeImmutable();
   event Mint(address indexed sender, uint amount0, uint amount1);
   event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
   event Swap(
@@ -97,8 +100,10 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     emit FeeAmountUpdated(token0FeeAmount, token1FeeAmount);
   }
 
-  function setStableSwap(bool stable) external {
+  function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external {
     require(msg.sender == IExcaliburV2Factory(factory).setStableOwner(), "ExcaliburPair: only factory's setStableOwner");
+    require(!pairTypeImmutable, "ExcaliburPair: immutable");
+    require(expectedReserve0 == reserve0 && expectedReserve1 == reserve1, "ExcaliburPair: failed");
 
     bool feeOn = _mintFee(reserve0, reserve1);
 
@@ -106,6 +111,14 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     stableSwap = stable;
 
     if (feeOn) kLast = _k(uint(reserve0), uint(reserve1));
+  }
+
+  function setPairTypeImmutable() external {
+    require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
+    require(!pairTypeImmutable, "ExcaliburPair: already immutable");
+
+    pairTypeImmutable = true;
+    emit SetPairTypeImmutable();
   }
 
   // update reserves
