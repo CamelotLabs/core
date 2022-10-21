@@ -35,7 +35,7 @@ describe('StableSwap', () => {
     token1 = fixture.token1
     pair = fixture.pair
 
-    await pair.setStableSwap(1)
+    await pair.setStableSwap(1, 0, 0)
   })
 
   it('mint', async () => {
@@ -102,8 +102,8 @@ describe('StableSwap', () => {
 
   swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
-      const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swapTestCase
-      await pair.setFeeAmount(feeAmount, 100)
+      const [swapAmount, token0Amount, token1Amount, feePercent, expectedOutputAmount] = swapTestCase
+      await pair.setFeePercent(feePercent, 100)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
 
@@ -133,9 +133,9 @@ describe('StableSwap', () => {
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
   optimisticTestCases.forEach((optimisticTestCase, i) => {
     it(`optimistic:${i}`, async () => {
-      const [outputAmount, token0Amount, token1Amount, feeAmount, inputAmount] = optimisticTestCase
+      const [outputAmount, token0Amount, token1Amount, feePercent, inputAmount] = optimisticTestCase
 
-      await pair.setFeeAmount(feeAmount, 100)
+      await pair.setFeePercent(feePercent, 100)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
       await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
@@ -152,7 +152,7 @@ describe('StableSwap', () => {
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
 
-    await pair.setFeeAmount(150, 1000)
+    await pair.setFeePercent(150, 1000)
 
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = bigNumberify('1037735021512657082')
@@ -183,7 +183,7 @@ describe('StableSwap', () => {
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
 
-    await pair.setFeeAmount(1000, 150)
+    await pair.setFeePercent(1000, 150)
 
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = bigNumberify('879102952348394399')
@@ -222,7 +222,7 @@ describe('StableSwap', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(92240)
+    expect(receipt.gasUsed).to.eq(92308)
   })
 
   it('burn', async () => {
@@ -255,7 +255,7 @@ describe('StableSwap', () => {
   })
 
   it('feeTo:off', async () => {
-    await pair.setFeeAmount(300, 300)
+    await pair.setFeePercent(300, 300)
     await factory.setFeeTo(AddressZero)
 
     const token0Amount = expandTo18Decimals(1000)
@@ -274,7 +274,7 @@ describe('StableSwap', () => {
   })
 
   it('feeTo:on', async () => {
-    await pair.setFeeAmount(300, 300)
+    await pair.setFeePercent(300, 300)
     await factory.setOwnerFeeShare(16666)
 
     await factory.setFeeTo(other.address)
@@ -313,7 +313,7 @@ describe('StableSwap', () => {
       await addLiquidity(token0Amount, token1Amount)
       expect(await pair.totalSupply()).to.eq(expectedLiquidity)
 
-      await pair.setStableSwap(0)
+      await pair.setStableSwap(0, token0Amount, token1Amount)
       await addLiquidity(token0Amount, token1Amount)
       // expect same amount of LP minted
       expect(await pair.totalSupply()).to.eq(expectedLiquidity.mul('2'))
@@ -330,7 +330,7 @@ describe('StableSwap', () => {
       expect(await token0.balanceOf(other.address)).to.eq(expandTo18Decimals(100))
       expect(await token1.balanceOf(other.address)).to.eq(expandTo18Decimals(100))
 
-      await pair.setStableSwap(0)
+      await pair.setStableSwap(0, token0Amount.sub(expandTo18Decimals(100)), token1Amount.sub(expandTo18Decimals(100)))
       await pair.transfer(pair.address, expandTo18Decimals(100))
       await pair.burn(other.address, overrides)
       expect(await token0.balanceOf(other.address)).to.eq(expandTo18Decimals(100).mul(2))
@@ -341,6 +341,8 @@ describe('StableSwap', () => {
       const token0Amount = expandTo18Decimals(1000)
       const token1Amount = expandTo18Decimals(1000)
 
+      await factory.setOwnerFeeShare(100000)
+      await pair.setFeePercent(100, 100)
       await addLiquidity(token0Amount, token1Amount)
 
       const swapAmount = expandTo18Decimals(1)
@@ -348,7 +350,9 @@ describe('StableSwap', () => {
       await token1.transfer(pair.address, swapAmount)
       await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
 
-      await pair.setStableSwap(0)
+      const fee = swapAmount.mul('100').div('100000')
+      await pair.setStableSwap(0, token0Amount.sub(expectedOutputAmount), token1Amount.add(swapAmount).sub(fee))
+
       expectedOutputAmount = await pair.getAmountOut(swapAmount, token1.address)
       await token1.transfer(pair.address, swapAmount)
       await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)

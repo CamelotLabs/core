@@ -4,7 +4,7 @@ interface IExcaliburV2Factory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint256);
 
     function owner() external view returns (address);
-    function feeAmountOwner() external view returns (address);
+    function feePercentOwner() external view returns (address);
     function setStableOwner() external view returns (address);
     function feeTo() external view returns (address);
 

@@ -96,13 +96,13 @@ describe('ExcaliburV2Pair', () => {
 
   swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
-      const [swapAmount, token0Amount, token1Amount, feeAmount, expectedOutputAmount] = swapTestCase
-      await pair.setFeeAmount(feeAmount, 10)
+      const [swapAmount, token0Amount, token1Amount, feePercent, expectedOutputAmount] = swapTestCase
+      await pair.setFeePercent(feePercent, 10)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
 
-      // let expectedOutputNumerator = bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount).mul(token1Amount)
-      // let expectedOutputDenominator = token0Amount.mul(100000).add(bigNumberify(100000-feeAmount.toNumber()).mul(swapAmount))
+      // let expectedOutputNumerator = bigNumberify(100000-feePercent.toNumber()).mul(swapAmount).mul(token1Amount)
+      // let expectedOutputDenominator = token0Amount.mul(100000).add(bigNumberify(100000-feePercent.toNumber()).mul(swapAmount))
       // let expectedOutput = expectedOutputNumerator.div(expectedOutputDenominator)
       // console.log(expectedOutput.toString(), (await pair.getAmountOut(swapAmount, token0.address)).toString())
 
@@ -132,9 +132,9 @@ describe('ExcaliburV2Pair', () => {
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
   optimisticTestCases.forEach((optimisticTestCase, i) => {
     it(`optimistic:${i}`, async () => {
-      const [outputAmount, token0Amount, token1Amount, feeAmount, inputAmount] = optimisticTestCase
+      const [outputAmount, token0Amount, token1Amount, feePercent, inputAmount] = optimisticTestCase
 
-      await pair.setFeeAmount(feeAmount, 10)
+      await pair.setFeePercent(feePercent, 10)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
       await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
@@ -149,7 +149,7 @@ describe('ExcaliburV2Pair', () => {
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
 
-    await pair.setFeeAmount(150, 1000)
+    await pair.setFeePercent(150, 1000)
 
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = bigNumberify('1662497915624478906')
@@ -178,7 +178,7 @@ describe('ExcaliburV2Pair', () => {
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
 
-    await pair.setFeeAmount(1000, 150)
+    await pair.setFeePercent(1000, 150)
 
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = bigNumberify('453305446940074565')
@@ -217,7 +217,7 @@ describe('ExcaliburV2Pair', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(66265)
+    expect(receipt.gasUsed).to.eq(66354)
   })
 
   it('burn', async () => {
@@ -250,7 +250,7 @@ describe('ExcaliburV2Pair', () => {
   })
 
   // it('price{0,1}CumulativeLast', async () => {
-  //   await pair.setFeeAmount(300)
+  //   await pair.setFeePercent(300)
   //   await factory.setOwnerFeeShare(16666)
   //
   //   const token0Amount = expandTo18Decimals(3)
@@ -286,7 +286,7 @@ describe('ExcaliburV2Pair', () => {
   // })
 
   it('feeTo:off', async () => {
-    await pair.setFeeAmount(300, 300)
+    await pair.setFeePercent(300, 300)
     await factory.setFeeTo(AddressZero)
 
     const token0Amount = expandTo18Decimals(1000)
@@ -305,7 +305,7 @@ describe('ExcaliburV2Pair', () => {
   })
 
   it('feeTo:on', async () => {
-    await pair.setFeeAmount(1000, 300)
+    await pair.setFeePercent(1000, 300)
     await factory.setOwnerFeeShare(16666)
 
     await factory.setFeeTo(other.address)

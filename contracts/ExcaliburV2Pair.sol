@@ -3,14 +3,12 @@ pragma solidity =0.5.16;
 import './interfaces/IExcaliburV2Pair.sol';
 import './UniswapV2ERC20.sol';
 import './libraries/Math.sol';
-import './libraries/UQ112x112.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IExcaliburV2Factory.sol';
 import './interfaces/IUniswapV2Callee.sol';
 
 contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   using SafeMath  for uint;
-  using UQ112x112 for uint224;
 
   uint public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
@@ -22,15 +20,15 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   bool public initialized;
 
   uint public constant FEE_DENOMINATOR = 100000;
-  uint public constant MAX_FEE_AMOUNT = 2000; // = 2%
+  uint public constant MAX_FEE_PERCENT = 2000; // = 2%
 
   uint112 private reserve0;           // uses single storage slot, accessible via getReserves
   uint112 private reserve1;           // uses single storage slot, accessible via getReserves
-  uint16 public token0FeeAmount = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
-  uint16 public token1FeeAmount = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
+  uint16 public token0FeePercent = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
+  uint16 public token1FeePercent = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
 
-  uint public decimals0;
-  uint public decimals1;
+  uint public precisionMultiplier0;
+  uint public precisionMultiplier1;
 
   uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
@@ -45,11 +43,11 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     unlocked = 1;
   }
 
-  function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeeAmount, uint16 _token1FeeAmount) {
+  function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeePercent, uint16 _token1FeePercent) {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
-    _token0FeeAmount = token0FeeAmount;
-    _token1FeeAmount = token1FeeAmount;
+    _token0FeePercent = token0FeePercent;
+    _token1FeePercent = token1FeePercent;
   }
 
   function _safeTransfer(address token, address to, uint value) private {
@@ -58,7 +56,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   event DrainWrongToken(address indexed token, address to);
-  event FeeAmountUpdated(uint16 token0FeeAmount, uint16 token1FeeAmount);
+  event FeePercentUpdated(uint16 token0FeePercent, uint16 token1FeePercent);
   event SetStableSwap(bool prevStableSwap, bool stableSwap);
   event SetPairTypeImmutable();
   event Mint(address indexed sender, uint amount0, uint amount1);
@@ -72,6 +70,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     address indexed to
   );
   event Sync(uint112 reserve0, uint112 reserve1);
+  event Skim();
 
   constructor() public {
     factory = msg.sender;
@@ -84,24 +83,24 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     token0 = _token0;
     token1 = _token1;
 
-    decimals0 = 10 ** uint(IERC20(_token0).decimals());
-    decimals1 = 10 ** uint(IERC20(_token1).decimals());
+    precisionMultiplier0 = 10 ** uint(IERC20(_token0).decimals());
+    precisionMultiplier1 = 10 ** uint(IERC20(_token1).decimals());
 
     initialized = true;
   }
 
   /**
-  * @dev Updates the swap fees amount
+  * @dev Updates the swap fees percent
   *
-  * Can only be called by the factory's owner
+  * Can only be called by the factory's feeAmountOwner
   */
-  function setFeeAmount(uint16 newToken0FeeAmount, uint16 newToken1FeeAmount) external lock {
-    require(msg.sender == IExcaliburV2Factory(factory).feeAmountOwner(), "ExcaliburPair: only factory's feeAmountOwner");
-    require(newToken0FeeAmount <= MAX_FEE_AMOUNT && newToken1FeeAmount <= MAX_FEE_AMOUNT , "ExcaliburPair: feeAmount mustn't exceed the maximum");
-    require(newToken0FeeAmount > 0 && newToken1FeeAmount > 0, "ExcaliburPair: feeAmount mustn't exceed the minimum");
-    token0FeeAmount = newToken0FeeAmount;
-    token1FeeAmount = newToken1FeeAmount;
-    emit FeeAmountUpdated(newToken0FeeAmount, newToken1FeeAmount);
+  function setFeePercent(uint16 newToken0FeePercent, uint16 newToken1FeePercent) external lock {
+    require(msg.sender == IExcaliburV2Factory(factory).feePercentOwner(), "ExcaliburPair: only factory's feeAmountOwner");
+    require(newToken0FeePercent <= MAX_FEE_PERCENT && newToken1FeePercent <= MAX_FEE_PERCENT, "ExcaliburPair: feePercent mustn't exceed the maximum");
+    require(newToken0FeePercent > 0 && newToken1FeePercent > 0, "ExcaliburPair: feePercent mustn't exceed the minimum");
+    token0FeePercent = newToken0FeePercent;
+    token1FeePercent = newToken1FeePercent;
+    emit FeePercentUpdated(newToken0FeePercent, newToken1FeePercent);
   }
 
   function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external lock {
@@ -226,17 +225,27 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   // this low-level function should be called from a contract which performs important safety checks
   function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external {
-    TokensData memory tokensData;
-    tokensData.amount0Out = amount0Out;
-    tokensData.amount1Out = amount1Out;
+    TokensData memory tokensData = TokensData({
+      token0: token0,
+      token1: token1,
+      amount0Out: amount0Out,
+      amount1Out: amount1Out,
+      balance0: 0,
+      balance1: 0
+    });
     _swap(tokensData, to, data, address(0));
   }
 
   // this low-level function should be called from a contract which performs important safety checks
   function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data, address referrer) external {
-    TokensData memory tokensData;
-    tokensData.amount0Out = amount0Out;
-    tokensData.amount1Out = amount1Out;
+    TokensData memory tokensData = TokensData({
+      token0: token0,
+      token1: token1,
+      amount0Out: amount0Out,
+      amount1Out: amount1Out,
+      balance0: 0,
+      balance1: 0
+    });
     _swap(tokensData, to, data, referrer);
   }
 
@@ -244,11 +253,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   function _swap(TokensData memory tokensData, address to, bytes memory data, address referrer) internal lock {
     require(tokensData.amount0Out > 0 || tokensData.amount1Out > 0, 'ExcaliburPair: INSUFFICIENT_OUTPUT_AMOUNT');
 
-    (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeeAmount, uint16 _token1FeeAmount) = getReserves();
+    (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeePercent, uint16 _token1FeePercent) = getReserves();
     require(tokensData.amount0Out < _reserve0 && tokensData.amount1Out < _reserve1, 'ExcaliburPair: INSUFFICIENT_LIQUIDITY');
-
-    tokensData.token0 = token0;
-    tokensData.token1 = token1;
 
     {
       require(to != tokensData.token0 && to != tokensData.token1, 'ExcaliburPair: INVALID_TO');
@@ -265,18 +271,18 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint amount1In = tokensData.balance1 > _reserve1 - tokensData.amount1Out ? tokensData.balance1 - (_reserve1 - tokensData.amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'ExcaliburPair: INSUFFICIENT_INPUT_AMOUNT');
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      uint balance0Adjusted = tokensData.balance0.sub(amount0In.mul(_token0FeeAmount) / FEE_DENOMINATOR);
-      uint balance1Adjusted = tokensData.balance1.sub(amount1In.mul(_token1FeeAmount) / FEE_DENOMINATOR);
+      uint balance0Adjusted = tokensData.balance0.sub(amount0In.mul(_token0FeePercent) / FEE_DENOMINATOR);
+      uint balance1Adjusted = tokensData.balance1.sub(amount1In.mul(_token1FeePercent) / FEE_DENOMINATOR);
       require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'ExcaliburPair: K');
     }
     {// scope for referer/stable fees management
       uint referrerInputFeeShare = referrer != address(0) ? IExcaliburV2Factory(factory).referrersFeeShare(referrer) : 0;
       if (referrerInputFeeShare > 0) {
         if (amount0In > 0) {
-          _safeTransfer(tokensData.token0, referrer, amount0In.mul(referrerInputFeeShare).mul(_token0FeeAmount) / (FEE_DENOMINATOR ** 2));
+          _safeTransfer(tokensData.token0, referrer, amount0In.mul(referrerInputFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 2));
         }
         if (amount1In > 0) {
-          _safeTransfer(tokensData.token1, referrer, amount1In.mul(referrerInputFeeShare).mul(_token1FeeAmount) / (FEE_DENOMINATOR ** 2));
+          _safeTransfer(tokensData.token1, referrer, amount1In.mul(referrerInputFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 2));
         }
       }
       //
@@ -284,8 +290,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
         (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
         if(feeTo != address(0)) {
           ownerFeeShare = FEE_DENOMINATOR.sub(referrerInputFeeShare).mul(ownerFeeShare);
-          if (amount0In > 0) _safeTransfer(tokensData.token0, feeTo, amount0In.mul(ownerFeeShare).mul(_token0FeeAmount) / (FEE_DENOMINATOR ** 3));
-          if (amount1In > 0) _safeTransfer(tokensData.token1, feeTo, amount1In.mul(ownerFeeShare).mul(_token1FeeAmount) / (FEE_DENOMINATOR ** 3));
+          if (amount0In > 0) _safeTransfer(tokensData.token0, feeTo, amount0In.mul(ownerFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 3));
+          if (amount1In > 0) _safeTransfer(tokensData.token1, feeTo, amount1In.mul(ownerFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 3));
         }
       }
       // readjust tokensData
@@ -298,8 +304,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   function _k(uint balance0, uint balance1) internal view returns (uint) { // 100612402227800000 // 107240138901100000
     if (stableSwap) {
-      uint _x = balance0.mul(1e18) / decimals0;
-      uint _y = (balance1.mul(1e18)) / decimals1;
+      uint _x = balance0.mul(1e18) / precisionMultiplier0;
+      uint _y = (balance1.mul(1e18)) / precisionMultiplier1;
       uint _a = (_x.mul(_y)) / 1e18; // (_x * _y) / 1e18
       uint _b = (_x.mul(_x) / 1e18).add(_y.mul(_y) / 1e18); // ((_x * _x) / 1e18 + (_y * _y) / 1e18);
       return  _a.mul(_b) / 1e18; // x3y+y3x >= k
@@ -340,25 +346,25 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   function getAmountOut(uint amountIn, address tokenIn) external view returns (uint) {
-    uint16 feeAmount = tokenIn == token0 ? token0FeeAmount : token1FeeAmount;
-    return _getAmountOut(amountIn, tokenIn, uint(reserve0), uint(reserve1), feeAmount);
+    uint16 feePercent = tokenIn == token0 ? token0FeePercent : token1FeePercent;
+    return _getAmountOut(amountIn, tokenIn, uint(reserve0), uint(reserve1), feePercent);
   }
 
-  function _getAmountOut(uint amountIn, address tokenIn, uint _reserve0, uint _reserve1, uint feeAmount) internal view returns (uint) {
+  function _getAmountOut(uint amountIn, address tokenIn, uint _reserve0, uint _reserve1, uint feePercent) internal view returns (uint) {
     if (stableSwap) {
-      amountIn = amountIn.sub(amountIn.mul(feeAmount) / FEE_DENOMINATOR); // remove fee from amount received
+      amountIn = amountIn.sub(amountIn.mul(feePercent) / FEE_DENOMINATOR); // remove fee from amount received
       uint xy = _k(_reserve0, _reserve1);
-      _reserve0 = _reserve0 * 1e18 / decimals0;
-      _reserve1 = _reserve1 * 1e18 / decimals1;
+      _reserve0 = _reserve0 * 1e18 / precisionMultiplier0;
+      _reserve1 = _reserve1 * 1e18 / precisionMultiplier1;
 
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
-      amountIn = tokenIn == token0 ? amountIn * 1e18 / decimals0 : amountIn * 1e18 / decimals1;
+      amountIn = tokenIn == token0 ? amountIn * 1e18 / precisionMultiplier0 : amountIn * 1e18 / precisionMultiplier1;
       uint y = reserveB - _get_y(amountIn + reserveA, xy, reserveB);
-      return y * (tokenIn == token0 ? decimals1 : decimals0) / 1e18;
+      return y * (tokenIn == token0 ? precisionMultiplier1 : precisionMultiplier0) / 1e18;
 
     } else {
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
-      amountIn = amountIn.mul(FEE_DENOMINATOR.sub(feeAmount));
+      amountIn = amountIn.mul(FEE_DENOMINATOR.sub(feePercent));
       return (amountIn.mul(reserveB)) / (reserveA.mul(FEE_DENOMINATOR).add(amountIn));
     }
   }
@@ -371,6 +377,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     // gas savings
     _safeTransfer(_token0, to, IERC20(_token0).balanceOf(address(this)).sub(reserve0));
     _safeTransfer(_token1, to, IERC20(_token1).balanceOf(address(this)).sub(reserve1));
+    emit Skim();
   }
 
   // force reserves to match balances
