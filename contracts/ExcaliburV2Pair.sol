@@ -221,6 +221,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint amount1Out;
     uint balance0;
     uint balance1;
+    uint remainingFee0;
+    uint remainingFee1;
   }
 
   // this low-level function should be called from a contract which performs important safety checks
@@ -231,7 +233,9 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
       amount0Out: amount0Out,
       amount1Out: amount1Out,
       balance0: 0,
-      balance1: 0
+      balance1: 0,
+      remainingFee0: 0,
+      remainingFee1: 0
     });
     _swap(tokensData, to, data, address(0));
   }
@@ -244,7 +248,9 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
       amount0Out: amount0Out,
       amount1Out: amount1Out,
       balance0: 0,
-      balance1: 0
+      balance1: 0,
+      remainingFee0: 0,
+      remainingFee1: 0
     });
     _swap(tokensData, to, data, referrer);
   }
@@ -255,6 +261,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
     (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeePercent, uint16 _token1FeePercent) = getReserves();
     require(tokensData.amount0Out < _reserve0 && tokensData.amount1Out < _reserve1, 'ExcaliburPair: INSUFFICIENT_LIQUIDITY');
+
 
     {
       require(to != tokensData.token0 && to != tokensData.token1, 'ExcaliburPair: INVALID_TO');
@@ -270,33 +277,51 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint amount0In = tokensData.balance0 > _reserve0 - tokensData.amount0Out ? tokensData.balance0 - (_reserve0 - tokensData.amount0Out) : 0;
     uint amount1In = tokensData.balance1 > _reserve1 - tokensData.amount1Out ? tokensData.balance1 - (_reserve1 - tokensData.amount1Out) : 0;
     require(amount0In > 0 || amount1In > 0, 'ExcaliburPair: INSUFFICIENT_INPUT_AMOUNT');
-    {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      uint balance0Adjusted = tokensData.balance0.sub(amount0In.mul(_token0FeePercent) / FEE_DENOMINATOR);
-      uint balance1Adjusted = tokensData.balance1.sub(amount1In.mul(_token1FeePercent) / FEE_DENOMINATOR);
-      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'ExcaliburPair: K');
-    }
+
+    tokensData.remainingFee0 = amount0In.mul(_token0FeePercent) / FEE_DENOMINATOR;
+    tokensData.remainingFee1 = amount1In.mul(_token1FeePercent) / FEE_DENOMINATOR;
+
     {// scope for referer/stable fees management
+      uint fee = 0;
+
       uint referrerInputFeeShare = referrer != address(0) ? IExcaliburV2Factory(factory).referrersFeeShare(referrer) : 0;
       if (referrerInputFeeShare > 0) {
         if (amount0In > 0) {
-          _safeTransfer(tokensData.token0, referrer, amount0In.mul(referrerInputFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 2));
+          fee = amount0In.mul(referrerInputFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 2);
+          tokensData.remainingFee0 = tokensData.remainingFee0.sub(fee);
+          _safeTransfer(tokensData.token0, referrer, fee);
         }
         if (amount1In > 0) {
-          _safeTransfer(tokensData.token1, referrer, amount1In.mul(referrerInputFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 2));
+          fee = amount1In.mul(referrerInputFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 2);
+          tokensData.remainingFee1 = tokensData.remainingFee1.sub(fee);
+          _safeTransfer(tokensData.token1, referrer, fee);
         }
       }
-      //
+
       if(stableSwap){
         (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
         if(feeTo != address(0)) {
           ownerFeeShare = FEE_DENOMINATOR.sub(referrerInputFeeShare).mul(ownerFeeShare);
-          if (amount0In > 0) _safeTransfer(tokensData.token0, feeTo, amount0In.mul(ownerFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 3));
-          if (amount1In > 0) _safeTransfer(tokensData.token1, feeTo, amount1In.mul(ownerFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 3));
+          if (amount0In > 0) {
+            fee = amount0In.mul(ownerFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 3);
+            tokensData.remainingFee0 = tokensData.remainingFee0.sub(fee);
+            _safeTransfer(tokensData.token0, feeTo, fee);
+          }
+          if (amount1In > 0) {
+            fee = amount1In.mul(ownerFeeShare).mul(_token1FeePercent) / (FEE_DENOMINATOR ** 3);
+            tokensData.remainingFee1 = tokensData.remainingFee1.sub(fee);
+            _safeTransfer(tokensData.token1, feeTo, fee);
+          }
         }
       }
-      // readjust tokensData
+      // readjust tokens balance
       if (amount0In > 0) tokensData.balance0 = IERC20(tokensData.token0).balanceOf(address(this));
       if (amount1In > 0) tokensData.balance1 = IERC20(tokensData.token1).balanceOf(address(this));
+    }
+    {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
+      uint balance0Adjusted = tokensData.balance0.sub(tokensData.remainingFee0);
+      uint balance1Adjusted = tokensData.balance1.sub(tokensData.remainingFee1);
+      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'ExcaliburPair: K');
     }
     _update(tokensData.balance0, tokensData.balance1);
     emit Swap(msg.sender, amount0In, amount1In, tokensData.amount0Out, tokensData.amount1Out, to);
