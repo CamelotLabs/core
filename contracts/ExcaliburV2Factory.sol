@@ -101,9 +101,8 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     function setOwnerFeeShare(uint newOwnerFeeShare) external onlyOwner {
         require(newOwnerFeeShare > 0, "ExcaliburV2Factory: ownerFeeShare mustn't exceed minimum");
         require(newOwnerFeeShare <= OWNER_FEE_SHARE_MAX, "ExcaliburV2Factory: ownerFeeShare mustn't exceed maximum");
-        uint prevOwnerFeeShare = ownerFeeShare;
+        emit OwnerFeeShareUpdated(ownerFeeShare, newOwnerFeeShare);
         ownerFeeShare = newOwnerFeeShare;
-        emit OwnerFeeShareUpdated(prevOwnerFeeShare, ownerFeeShare);
     }
 
     /**
@@ -114,9 +113,8 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     function setReferrerFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
         require(referrer != address(0), "ExcaliburV2Factory: zero address");
         require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "ExcaliburV2Factory: referrerFeeShare mustn't exceed maximum");
-        uint prevReferrerFeeShare = referrersFeeShare[referrer];
+        emit ReferrerFeeShareUpdated(referrer, referrersFeeShare[referrer], referrerFeeShare);
         referrersFeeShare[referrer] = referrerFeeShare;
-        emit ReferrerFeeShareUpdated(referrer, prevReferrerFeeShare, referrerFeeShare);
     }
 
     function feeInfo() external view returns (uint _ownerFeeShare, address _feeTo) {
