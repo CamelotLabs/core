@@ -29,8 +29,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   uint16 public token0FeeAmount = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
   uint16 public token1FeeAmount = 150; // default = 0.15%  // uses single storage slot, accessible via getReserves
 
-  uint private _decimals0;
-  uint private _decimals1;
+  uint public decimals0;
+  uint public decimals1;
 
   uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
@@ -84,8 +84,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     token0 = _token0;
     token1 = _token1;
 
-    _decimals0 = 10 ** uint(IERC20(_token0).decimals());
-    _decimals1 = 10 ** uint(IERC20(_token1).decimals());
+    decimals0 = 10 ** uint(IERC20(_token0).decimals());
+    decimals1 = 10 ** uint(IERC20(_token1).decimals());
 
     initialized = true;
   }
@@ -298,8 +298,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   function _k(uint balance0, uint balance1) internal view returns (uint) { // 100612402227800000 // 107240138901100000
     if (stableSwap) {
-      uint _x = balance0.mul(1e18) / _decimals0;
-      uint _y = (balance1.mul(1e18)) / _decimals1;
+      uint _x = balance0.mul(1e18) / decimals0;
+      uint _y = (balance1.mul(1e18)) / decimals1;
       uint _a = (_x.mul(_y)) / 1e18; // (_x * _y) / 1e18
       uint _b = (_x.mul(_x) / 1e18).add(_y.mul(_y) / 1e18); // ((_x * _x) / 1e18 + (_y * _y) / 1e18);
       return  _a.mul(_b) / 1e18; // x3y+y3x >= k
@@ -348,13 +348,13 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     if (stableSwap) {
       amountIn = amountIn.sub(amountIn.mul(feeAmount) / FEE_DENOMINATOR); // remove fee from amount received
       uint xy = _k(_reserve0, _reserve1);
-      _reserve0 = _reserve0 * 1e18 / _decimals0;
-      _reserve1 = _reserve1 * 1e18 / _decimals1;
+      _reserve0 = _reserve0 * 1e18 / decimals0;
+      _reserve1 = _reserve1 * 1e18 / decimals1;
 
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
-      amountIn = tokenIn == token0 ? amountIn * 1e18 / _decimals0 : amountIn * 1e18 / _decimals1;
+      amountIn = tokenIn == token0 ? amountIn * 1e18 / decimals0 : amountIn * 1e18 / decimals1;
       uint y = reserveB - _get_y(amountIn + reserveA, xy, reserveB);
-      return y * (tokenIn == token0 ? _decimals1 : _decimals0) / 1e18;
+      return y * (tokenIn == token0 ? decimals1 : decimals0) / 1e18;
 
     } else {
       (uint reserveA, uint reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
