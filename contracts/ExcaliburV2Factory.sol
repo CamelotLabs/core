@@ -34,6 +34,11 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
         feeAmountOwner = msg.sender;
         setStableOwner = msg.sender;
         feeTo = feeTo_;
+
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit FeeAmountOwnershipTransferred(address(0), msg.sender);
+        emit SetStableOwnershipTransferred(address(0), msg.sender);
+        emit FeeToTransferred(address(0), feeTo_);
     }
 
     /**
