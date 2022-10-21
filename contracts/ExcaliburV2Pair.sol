@@ -101,7 +101,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     require(newToken0FeeAmount > 0 && newToken1FeeAmount > 0, "ExcaliburPair: feeAmount mustn't exceed the minimum");
     token0FeeAmount = newToken0FeeAmount;
     token1FeeAmount = newToken1FeeAmount;
-    emit FeeAmountUpdated(token0FeeAmount, token1FeeAmount);
+    emit FeeAmountUpdated(newToken0FeeAmount, newToken1FeeAmount);
   }
 
   function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external lock {
@@ -133,7 +133,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
     reserve0 = uint112(balance0);
     reserve1 = uint112(balance1);
-    emit Sync(reserve0, reserve1);
+    emit Sync(uint112(balance0), uint112(balance1));
   }
 
   // if fee is on, mint liquidity equivalent to "factory.ownerFeeShare()" of the growth in sqrt(k)
