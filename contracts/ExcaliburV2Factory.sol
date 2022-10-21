@@ -4,8 +4,6 @@ import './interfaces/IExcaliburV2Factory.sol';
 import './ExcaliburV2Pair.sol';
 
 contract ExcaliburV2Factory is IExcaliburV2Factory {
-    bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(ExcaliburV2Pair).creationCode));
-
     address public owner;
     address public feeAmountOwner;
     address public setStableOwner;
@@ -22,7 +20,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     address[] public allPairs;
 
     event FeeToTransferred(address indexed prevFeeTo, address indexed newFeeTo);
-    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint length);
     event OwnerFeeShareUpdated(uint prevOwnerFeeShare, uint ownerFeeShare);
     event OwnershipTransferred(address indexed prevOwner, address indexed newOwner);
     event FeeAmountOwnershipTransferred(address indexed prevOwner, address indexed newOwner);
@@ -96,7 +94,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     }
 
     /**
-     * @dev Updates the share of fees attributed to the owner (FeeManager)
+     * @dev Updates the share of fees attributed to the owner
      *
      * Must only be called by owner
      */
@@ -113,7 +111,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      *
      * Must only be called by owner
      */
-    function setRefererFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
+    function setReferrerFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
         require(referrer != address(0), "ExcaliburV2Factory: zero address");
         require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "ExcaliburV2Factory: referrerFeeShare mustn't exceed maximum");
         uint prevReferrerFeeShare = referrersFeeShare[referrer];
