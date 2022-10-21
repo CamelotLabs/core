@@ -19,6 +19,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   address public token0;
   address public token1;
 
+  bool public initialized;
+
   uint public constant FEE_DENOMINATOR = 100000;
   uint public constant MAX_FEE_AMOUNT = 2000; // = 2%
 
@@ -77,13 +79,15 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   // called once by the factory at time of deployment
   function initialize(address _token0, address _token1) external {
-    require(msg.sender == factory, 'ExcaliburPair: FORBIDDEN');
+    require(msg.sender == factory && !initialized, 'ExcaliburPair: FORBIDDEN');
     // sufficient check
     token0 = _token0;
     token1 = _token1;
 
     _decimals0 = 10 ** uint(IERC20(_token0).decimals());
     _decimals1 = 10 ** uint(IERC20(_token1).decimals());
+
+    initialized = true;
   }
 
   /**
