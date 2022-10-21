@@ -103,14 +103,16 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external {
     require(msg.sender == IExcaliburV2Factory(factory).setStableOwner(), "ExcaliburPair: only factory's setStableOwner");
     require(!pairTypeImmutable, "ExcaliburPair: immutable");
+
+    require(stable != stableSwap, "ExcaliburPair: no update");
     require(expectedReserve0 == reserve0 && expectedReserve1 == reserve1, "ExcaliburPair: failed");
 
     bool feeOn = _mintFee(reserve0, reserve1);
 
     emit SetStableSwap(stableSwap, stable);
     stableSwap = stable;
-
-    if (feeOn) kLast = _k(uint(reserve0), uint(reserve1));
+    if(!stable) kLast = 0;
+    else if (feeOn) kLast = _k(uint(reserve0), uint(reserve1));
   }
 
   function setPairTypeImmutable() external {
