@@ -95,7 +95,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   *
   * Can only be called by the factory's owner
   */
-  function setFeeAmount(uint16 newToken0FeeAmount, uint16 newToken1FeeAmount) external {
+  function setFeeAmount(uint16 newToken0FeeAmount, uint16 newToken1FeeAmount) external lock {
     require(msg.sender == IExcaliburV2Factory(factory).feeAmountOwner(), "ExcaliburPair: only factory's feeAmountOwner");
     require(newToken0FeeAmount <= MAX_FEE_AMOUNT && newToken1FeeAmount <= MAX_FEE_AMOUNT , "ExcaliburPair: feeAmount mustn't exceed the maximum");
     require(newToken0FeeAmount > 0 && newToken1FeeAmount > 0, "ExcaliburPair: feeAmount mustn't exceed the minimum");
@@ -104,7 +104,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     emit FeeAmountUpdated(token0FeeAmount, token1FeeAmount);
   }
 
-  function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external {
+  function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external lock {
     require(msg.sender == IExcaliburV2Factory(factory).setStableOwner(), "ExcaliburPair: only factory's setStableOwner");
     require(!pairTypeImmutable, "ExcaliburPair: immutable");
 
@@ -119,7 +119,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     else if (feeOn) kLast = _k(uint(reserve0), uint(reserve1));
   }
 
-  function setPairTypeImmutable() external {
+  function setPairTypeImmutable() external lock {
     require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
     require(!pairTypeImmutable, "ExcaliburPair: already immutable");
 
@@ -386,7 +386,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   *
   * Can only be called by factory's owner
   */
-  function drainWrongToken(address token, address to) external {
+  function drainWrongToken(address token, address to) external lock {
     require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
     require(token != token0 && token != token1, "ExcaliburPair: invalid token");
     _safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
