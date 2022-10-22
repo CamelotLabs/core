@@ -29,8 +29,8 @@ describe('UniswapV2ERC20', () => {
 
   it('name, symbol, decimals, totalSupply, balanceOf, DOMAIN_SEPARATOR, PERMIT_TYPEHASH', async () => {
     const name = await token.name()
-    expect(name).to.eq('Excalibur LP')
-    expect(await token.symbol()).to.eq('EXC-LP')
+    expect(name).to.eq('Camelot LP')
+    expect(await token.symbol()).to.eq('CMLT-LP')
     expect(await token.decimals()).to.eq(18)
     expect(await token.totalSupply()).to.eq(TOTAL_SUPPLY)
     expect(await token.balanceOf(wallet.address)).to.eq(TOTAL_SUPPLY)

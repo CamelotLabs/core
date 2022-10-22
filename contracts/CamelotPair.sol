@@ -1,13 +1,13 @@
 pragma solidity =0.5.16;
 
-import './interfaces/IExcaliburV2Pair.sol';
+import './interfaces/ICamelotPair.sol';
 import './UniswapV2ERC20.sol';
 import './libraries/Math.sol';
 import './interfaces/IERC20.sol';
-import './interfaces/IExcaliburV2Factory.sol';
+import './interfaces/ICamelotFactory.sol';
 import './interfaces/IUniswapV2Callee.sol';
 
-contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
+contract CamelotPair is ICamelotPair, UniswapV2ERC20 {
   using SafeMath  for uint;
 
   uint public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -37,7 +37,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   uint private unlocked = 1;
   modifier lock() {
-    require(unlocked == 1, 'ExcaliburPair: LOCKED');
+    require(unlocked == 1, 'CamelotPair: LOCKED');
     unlocked = 0;
     _;
     unlocked = 1;
@@ -52,7 +52,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   function _safeTransfer(address token, address to, uint value) private {
     (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
-    require(success && (data.length == 0 || abi.decode(data, (bool))), 'ExcaliburPair: TRANSFER_FAILED');
+    require(success && (data.length == 0 || abi.decode(data, (bool))), 'CamelotPair: TRANSFER_FAILED');
   }
 
   event DrainWrongToken(address indexed token, address to);
@@ -78,7 +78,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   // called once by the factory at time of deployment
   function initialize(address _token0, address _token1) external {
-    require(msg.sender == factory && !initialized, 'ExcaliburPair: FORBIDDEN');
+    require(msg.sender == factory && !initialized, 'CamelotPair: FORBIDDEN');
     // sufficient check
     token0 = _token0;
     token1 = _token1;
@@ -95,20 +95,20 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   * Can only be called by the factory's feeAmountOwner
   */
   function setFeePercent(uint16 newToken0FeePercent, uint16 newToken1FeePercent) external lock {
-    require(msg.sender == IExcaliburV2Factory(factory).feePercentOwner(), "ExcaliburPair: only factory's feeAmountOwner");
-    require(newToken0FeePercent <= MAX_FEE_PERCENT && newToken1FeePercent <= MAX_FEE_PERCENT, "ExcaliburPair: feePercent mustn't exceed the maximum");
-    require(newToken0FeePercent > 0 && newToken1FeePercent > 0, "ExcaliburPair: feePercent mustn't exceed the minimum");
+    require(msg.sender == ICamelotFactory(factory).feePercentOwner(), "CamelotPair: only factory's feeAmountOwner");
+    require(newToken0FeePercent <= MAX_FEE_PERCENT && newToken1FeePercent <= MAX_FEE_PERCENT, "CamelotPair: feePercent mustn't exceed the maximum");
+    require(newToken0FeePercent > 0 && newToken1FeePercent > 0, "CamelotPair: feePercent mustn't exceed the minimum");
     token0FeePercent = newToken0FeePercent;
     token1FeePercent = newToken1FeePercent;
     emit FeePercentUpdated(newToken0FeePercent, newToken1FeePercent);
   }
 
   function setStableSwap(bool stable, uint112 expectedReserve0, uint112 expectedReserve1) external lock {
-    require(msg.sender == IExcaliburV2Factory(factory).setStableOwner(), "ExcaliburPair: only factory's setStableOwner");
-    require(!pairTypeImmutable, "ExcaliburPair: immutable");
+    require(msg.sender == ICamelotFactory(factory).setStableOwner(), "CamelotPair: only factory's setStableOwner");
+    require(!pairTypeImmutable, "CamelotPair: immutable");
 
-    require(stable != stableSwap, "ExcaliburPair: no update");
-    require(expectedReserve0 == reserve0 && expectedReserve1 == reserve1, "ExcaliburPair: failed");
+    require(stable != stableSwap, "CamelotPair: no update");
+    require(expectedReserve0 == reserve0 && expectedReserve1 == reserve1, "CamelotPair: failed");
 
     bool feeOn = _mintFee(reserve0, reserve1);
 
@@ -119,8 +119,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   }
 
   function setPairTypeImmutable() external lock {
-    require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
-    require(!pairTypeImmutable, "ExcaliburPair: already immutable");
+    require(msg.sender == ICamelotFactory(factory).owner(), "CamelotPair: only factory's owner");
+    require(!pairTypeImmutable, "CamelotPair: already immutable");
 
     pairTypeImmutable = true;
     emit SetPairTypeImmutable();
@@ -128,7 +128,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
   // update reserves
   function _update(uint balance0, uint balance1) private {
-    require(balance0 <= uint112(- 1) && balance1 <= uint112(- 1), 'ExcaliburPair: OVERFLOW');
+    require(balance0 <= uint112(- 1) && balance1 <= uint112(- 1), 'CamelotPair: OVERFLOW');
 
     reserve0 = uint112(balance0);
     reserve1 = uint112(balance1);
@@ -140,7 +140,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
     if(stableSwap) return false;
 
-    (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
+    (uint ownerFeeShare, address feeTo) = ICamelotFactory(factory).feeInfo();
     feeOn = feeTo != address(0);
     uint _kLast = kLast;
     // gas savings
@@ -180,7 +180,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     } else {
       liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
     }
-    require(liquidity > 0, 'ExcaliburPair: INSUFFICIENT_LIQUIDITY_MINTED');
+    require(liquidity > 0, 'CamelotPair: INSUFFICIENT_LIQUIDITY_MINTED');
     _mint(to, liquidity);
 
     _update(balance0, balance1);
@@ -202,7 +202,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
     amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
     amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
-    require(amount0 > 0 && amount1 > 0, 'ExcaliburPair: INSUFFICIENT_LIQUIDITY_BURNED');
+    require(amount0 > 0 && amount1 > 0, 'CamelotPair: INSUFFICIENT_LIQUIDITY_BURNED');
     _burn(address(this), liquidity);
     _safeTransfer(_token0, to, amount0);
     _safeTransfer(_token1, to, amount1);
@@ -257,14 +257,14 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
 
   function _swap(TokensData memory tokensData, address to, bytes memory data, address referrer) internal lock {
-    require(tokensData.amount0Out > 0 || tokensData.amount1Out > 0, 'ExcaliburPair: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(tokensData.amount0Out > 0 || tokensData.amount1Out > 0, 'CamelotPair: INSUFFICIENT_OUTPUT_AMOUNT');
 
     (uint112 _reserve0, uint112 _reserve1, uint16 _token0FeePercent, uint16 _token1FeePercent) = getReserves();
-    require(tokensData.amount0Out < _reserve0 && tokensData.amount1Out < _reserve1, 'ExcaliburPair: INSUFFICIENT_LIQUIDITY');
+    require(tokensData.amount0Out < _reserve0 && tokensData.amount1Out < _reserve1, 'CamelotPair: INSUFFICIENT_LIQUIDITY');
 
 
     {
-      require(to != tokensData.token0 && to != tokensData.token1, 'ExcaliburPair: INVALID_TO');
+      require(to != tokensData.token0 && to != tokensData.token1, 'CamelotPair: INVALID_TO');
       // optimistically transfer tokens
       if (tokensData.amount0Out > 0) _safeTransfer(tokensData.token0, to, tokensData.amount0Out);
       // optimistically transfer tokens
@@ -276,7 +276,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
 
     uint amount0In = tokensData.balance0 > _reserve0 - tokensData.amount0Out ? tokensData.balance0 - (_reserve0 - tokensData.amount0Out) : 0;
     uint amount1In = tokensData.balance1 > _reserve1 - tokensData.amount1Out ? tokensData.balance1 - (_reserve1 - tokensData.amount1Out) : 0;
-    require(amount0In > 0 || amount1In > 0, 'ExcaliburPair: INSUFFICIENT_INPUT_AMOUNT');
+    require(amount0In > 0 || amount1In > 0, 'CamelotPair: INSUFFICIENT_INPUT_AMOUNT');
 
     tokensData.remainingFee0 = amount0In.mul(_token0FeePercent) / FEE_DENOMINATOR;
     tokensData.remainingFee1 = amount1In.mul(_token1FeePercent) / FEE_DENOMINATOR;
@@ -284,7 +284,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     {// scope for referer/stable fees management
       uint fee = 0;
 
-      uint referrerInputFeeShare = referrer != address(0) ? IExcaliburV2Factory(factory).referrersFeeShare(referrer) : 0;
+      uint referrerInputFeeShare = referrer != address(0) ? ICamelotFactory(factory).referrersFeeShare(referrer) : 0;
       if (referrerInputFeeShare > 0) {
         if (amount0In > 0) {
           fee = amount0In.mul(referrerInputFeeShare).mul(_token0FeePercent) / (FEE_DENOMINATOR ** 2);
@@ -299,7 +299,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
       }
 
       if(stableSwap){
-        (uint ownerFeeShare, address feeTo) = IExcaliburV2Factory(factory).feeInfo();
+        (uint ownerFeeShare, address feeTo) = ICamelotFactory(factory).feeInfo();
         if(feeTo != address(0)) {
           ownerFeeShare = FEE_DENOMINATOR.sub(referrerInputFeeShare).mul(ownerFeeShare);
           if (amount0In > 0) {
@@ -321,7 +321,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
       uint balance0Adjusted = tokensData.balance0.sub(tokensData.remainingFee0);
       uint balance1Adjusted = tokensData.balance1.sub(tokensData.remainingFee1);
-      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'ExcaliburPair: K');
+      require(_k(balance0Adjusted, balance1Adjusted) >= _k(uint(_reserve0), uint(_reserve1)), 'CamelotPair: K');
     }
     _update(tokensData.balance0, tokensData.balance1);
     emit Swap(msg.sender, amount0In, amount1In, tokensData.amount0Out, tokensData.amount1Out, to);
@@ -409,7 +409,7 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   function sync() external lock {
     uint token0Balance = IERC20(token0).balanceOf(address(this));
     uint token1Balance = IERC20(token1).balanceOf(address(this));
-    require(token0Balance != 0 && token1Balance != 0, "ExcaliburPair: liquidity ratio not initialized");
+    require(token0Balance != 0 && token1Balance != 0, "CamelotPair: liquidity ratio not initialized");
     _update(token0Balance, token1Balance);
   }
 
@@ -419,8 +419,8 @@ contract ExcaliburV2Pair is IExcaliburV2Pair, UniswapV2ERC20 {
   * Can only be called by factory's owner
   */
   function drainWrongToken(address token, address to) external lock {
-    require(msg.sender == IExcaliburV2Factory(factory).owner(), "ExcaliburPair: only factory's owner");
-    require(token != token0 && token != token1, "ExcaliburPair: invalid token");
+    require(msg.sender == ICamelotFactory(factory).owner(), "CamelotPair: only factory's owner");
+    require(token != token0 && token != token1, "CamelotPair: invalid token");
     _safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
     emit DrainWrongToken(token, to);
   }

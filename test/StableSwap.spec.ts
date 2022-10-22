@@ -109,7 +109,7 @@ describe('StableSwap', () => {
 
       expect(await pair.getAmountOut(swapAmount, token0.address)).to.eq(expectedOutputAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
-        'ExcaliburPair: K'
+        'CamelotPair: K'
       )
       await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
     })
@@ -139,7 +139,7 @@ describe('StableSwap', () => {
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
       await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
-        'ExcaliburPair: K'
+        'CamelotPair: K'
       )
       await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
     })

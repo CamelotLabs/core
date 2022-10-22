@@ -15,7 +15,7 @@ const overrides = {
   gasLimit: 9999999
 }
 
-describe('ExcaliburV2Pair', () => {
+describe('CamelotPair', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
@@ -108,7 +108,7 @@ describe('ExcaliburV2Pair', () => {
 
       expect(await pair.getAmountOut(swapAmount, token0.address)).to.eq(expectedOutputAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
-        'ExcaliburPair: K'
+        'CamelotPair: K'
       )
       await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
     })
@@ -138,7 +138,7 @@ describe('ExcaliburV2Pair', () => {
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, inputAmount)
       await expect(pair.swap(outputAmount.add(2), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
-        'ExcaliburPair: K'
+        'CamelotPair: K'
       )
       await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
     })

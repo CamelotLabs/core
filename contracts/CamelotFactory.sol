@@ -1,9 +1,9 @@
 pragma solidity =0.5.16;
 
-import './interfaces/IExcaliburV2Factory.sol';
-import './ExcaliburV2Pair.sol';
+import './interfaces/ICamelotFactory.sol';
+import './CamelotPair.sol';
 
-contract ExcaliburV2Factory is IExcaliburV2Factory {
+contract CamelotFactory is ICamelotFactory {
     address public owner;
     address public feePercentOwner;
     address public setStableOwner;
@@ -43,7 +43,7 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(owner == msg.sender, "ExcaliburV2Factory: caller is not the owner");
+        require(owner == msg.sender, "CamelotFactory: caller is not the owner");
         _;
     }
 
@@ -52,17 +52,17 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     }
 
     function createPair(address tokenA, address tokenB) external returns (address pair) {
-        require(tokenA != tokenB, 'ExcaliburV2Factory: IDENTICAL_ADDRESSES');
+        require(tokenA != tokenB, 'CamelotFactory: IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'ExcaliburV2Factory: ZERO_ADDRESS');
-        require(getPair[token0][token1] == address(0), 'ExcaliburV2Factory: PAIR_EXISTS'); // single check is sufficient
-        bytes memory bytecode = type(ExcaliburV2Pair).creationCode;
+        require(token0 != address(0), 'CamelotFactory: ZERO_ADDRESS');
+        require(getPair[token0][token1] == address(0), 'CamelotFactory: PAIR_EXISTS'); // single check is sufficient
+        bytes memory bytecode = type(CamelotPair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        require(pair != address(0), "ExcaliburV2Factory: FAILED");
-        ExcaliburV2Pair(pair).initialize(token0, token1);
+        require(pair != address(0), "CamelotFactory: FAILED");
+        CamelotPair(pair).initialize(token0, token1);
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
@@ -70,20 +70,20 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
     }
 
     function setOwner(address _owner) external onlyOwner {
-        require(_owner != address(0), "ExcaliburV2Factory: zero address");
+        require(_owner != address(0), "CamelotFactory: zero address");
         emit OwnershipTransferred(owner, _owner);
         owner = _owner;
     }
 
     function setFeePercentOwner(address _feePercentOwner) external onlyOwner {
-        require(_feePercentOwner != address(0), "ExcaliburV2Factory: zero address");
+        require(_feePercentOwner != address(0), "CamelotFactory: zero address");
         emit FeePercentOwnershipTransferred(feePercentOwner, _feePercentOwner);
         feePercentOwner = _feePercentOwner;
     }
 
     function setSetStableOwner(address _setStableOwner) external {
-        require(msg.sender == setStableOwner, "ExcaliburV2Factory: not setStableOwner");
-        require(_setStableOwner != address(0), "ExcaliburV2Factory: zero address");
+        require(msg.sender == setStableOwner, "CamelotFactory: not setStableOwner");
+        require(_setStableOwner != address(0), "CamelotFactory: zero address");
         emit SetStableOwnershipTransferred(setStableOwner, _setStableOwner);
         setStableOwner = _setStableOwner;
     }
@@ -99,8 +99,8 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      * Must only be called by owner
      */
     function setOwnerFeeShare(uint newOwnerFeeShare) external onlyOwner {
-        require(newOwnerFeeShare > 0, "ExcaliburV2Factory: ownerFeeShare mustn't exceed minimum");
-        require(newOwnerFeeShare <= OWNER_FEE_SHARE_MAX, "ExcaliburV2Factory: ownerFeeShare mustn't exceed maximum");
+        require(newOwnerFeeShare > 0, "CamelotFactory: ownerFeeShare mustn't exceed minimum");
+        require(newOwnerFeeShare <= OWNER_FEE_SHARE_MAX, "CamelotFactory: ownerFeeShare mustn't exceed maximum");
         emit OwnerFeeShareUpdated(ownerFeeShare, newOwnerFeeShare);
         ownerFeeShare = newOwnerFeeShare;
     }
@@ -111,8 +111,8 @@ contract ExcaliburV2Factory is IExcaliburV2Factory {
      * Must only be called by owner
      */
     function setReferrerFeeShare(address referrer, uint referrerFeeShare) external onlyOwner {
-        require(referrer != address(0), "ExcaliburV2Factory: zero address");
-        require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "ExcaliburV2Factory: referrerFeeShare mustn't exceed maximum");
+        require(referrer != address(0), "CamelotFactory: zero address");
+        require(referrerFeeShare <= REFERER_FEE_SHARE_MAX, "CamelotFactory: referrerFeeShare mustn't exceed maximum");
         emit ReferrerFeeShareUpdated(referrer, referrersFeeShare[referrer], referrerFeeShare);
         referrersFeeShare[referrer] = referrerFeeShare;
     }

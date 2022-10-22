@@ -38,14 +38,14 @@ module.exports = {
 
   networks: {
     development: {
-      host: "127.0.0.1",     // Localhost (default: none)
-      port: 8545,            // Standard BSC port (default: none)
-      network_id: "*",       // Any network (default: none)
+      host: 'localhost', // Localhost (default: none)
+      port: 8545, // Standard port (default: none)
+      network_id: '*', // Any network (default: none)
     },
     arbitrum_testnet: {
       provider: () => new HDWalletProvider(MNENOMIC, `https://goerli-rollup.arbitrum.io/rpc`),
       network_id: 421613,
-      confirmations: 10,
+      confirmations: 1,
       timeoutBlocks: 1200,
       skipDryRun: true,
       from: process.env.DEPLOYER_ADDRESS_TESTNET.toString().trim(),
@@ -78,7 +78,7 @@ module.exports = {
        settings: {          // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
           enabled: true,
-          runs: 999999
+          runs: 30000
         }
       }
     }

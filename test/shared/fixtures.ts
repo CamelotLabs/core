@@ -5,8 +5,8 @@ import { deployContract } from 'ethereum-waffle'
 import { expandTo18Decimals } from './utilities'
 
 import ERC20 from '../../build/contracts/ERC20.json'
-import UniswapV2Factory from '../../build/contracts/ExcaliburV2Factory.json'
-import UniswapV2Pair from '../../build/contracts/ExcaliburV2Pair.json'
+import UniswapV2Factory from '../../build/contracts/CamelotFactory.json'
+import UniswapV2Pair from '../../build/contracts/CamelotPair.json'
 
 interface FactoryFixture {
   factory: Contract
