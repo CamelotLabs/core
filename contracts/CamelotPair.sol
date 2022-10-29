@@ -114,8 +114,7 @@ contract CamelotPair is ICamelotPair, UniswapV2ERC20 {
 
     emit SetStableSwap(stableSwap, stable);
     stableSwap = stable;
-    if(!stable) kLast = 0;
-    else if (feeOn) kLast = _k(uint(reserve0), uint(reserve1));
+    kLast = (stable && feeOn) ? _k(uint(reserve0), uint(reserve1)) : 0;
   }
 
   function setPairTypeImmutable() external lock {
@@ -327,12 +326,12 @@ contract CamelotPair is ICamelotPair, UniswapV2ERC20 {
     emit Swap(msg.sender, amount0In, amount1In, tokensData.amount0Out, tokensData.amount1Out, to);
   }
 
-  function _k(uint balance0, uint balance1) internal view returns (uint) { // 100612402227800000 // 107240138901100000
+  function _k(uint balance0, uint balance1) internal view returns (uint) {
     if (stableSwap) {
       uint _x = balance0.mul(1e18) / precisionMultiplier0;
-      uint _y = (balance1.mul(1e18)) / precisionMultiplier1;
-      uint _a = (_x.mul(_y)) / 1e18; // (_x * _y) / 1e18
-      uint _b = (_x.mul(_x) / 1e18).add(_y.mul(_y) / 1e18); // ((_x * _x) / 1e18 + (_y * _y) / 1e18);
+      uint _y = balance1.mul(1e18) / precisionMultiplier1;
+      uint _a = (_x.mul(_y)) / 1e18;
+      uint _b = (_x.mul(_x) / 1e18).add(_y.mul(_y) / 1e18);
       return  _a.mul(_b) / 1e18; // x3y+y3x >= k
     }
     return balance0.mul(balance1);
