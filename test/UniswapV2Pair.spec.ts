@@ -217,7 +217,7 @@ describe('CamelotPair', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(66354)
+    expect(receipt.gasUsed).to.eq(67304)
   })
 
   it('burn', async () => {

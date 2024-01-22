@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2020",
     "module": "commonjs",
-    "strict": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "types": ["node", "truffle-typings", "mocha"],
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   }
 }

@@ -157,6 +157,8 @@ describe('StableSwap', () => {
     const swapAmount = expandTo18Decimals(1)
     const expectedOutputAmount = bigNumberify('1037735021512657082')
     await token0.transfer(pair.address, swapAmount)
+
+    console.log(await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides))
     await expect(pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides))
       .to.emit(token1, 'Transfer')
       .withArgs(pair.address, wallet.address, expectedOutputAmount)
@@ -222,7 +224,7 @@ describe('StableSwap', () => {
     await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
     const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(92308)
+    expect(receipt.gasUsed).to.eq(93850)
   })
 
   it('burn', async () => {

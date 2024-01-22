@@ -1,4 +1,13 @@
-node_modules/
-build/
+node_modules
 .env
 .idea
+coverage
+coverage.json
+typechain
+typechain-types
+yarn-error.log
+
+# Hardhat files
+cache
+artifacts
+abi

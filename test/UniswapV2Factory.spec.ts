@@ -6,8 +6,8 @@ import {solidity, MockProvider, createFixtureLoader, deployContract} from 'ether
 import {expandTo18Decimals, getCreate2Address} from './shared/utilities'
 import { factoryFixture } from './shared/fixtures'
 
-import CamelotPair from '../build/contracts/CamelotPair.json'
-import ERC20 from "../build/contracts/ERC20.json";
+import CamelotPair from '../artifacts/contracts/CamelotPair.sol/CamelotPair.json'
+import ERC20 from "../artifacts/contracts/test/ERC20.sol/ERC20.json";
 
 chai.use(solidity)
 
@@ -73,7 +73,7 @@ describe('CamelotFactory', () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(...TEST_ADDRESSES)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(4099625)
+    expect(receipt.gasUsed).to.eq(3307692)
   })
 
   it('setFeeTo', async () => {

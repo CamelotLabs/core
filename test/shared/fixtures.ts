@@ -4,9 +4,9 @@ import { deployContract } from 'ethereum-waffle'
 
 import { expandTo18Decimals } from './utilities'
 
-import ERC20 from '../../build/contracts/ERC20.json'
-import UniswapV2Factory from '../../build/contracts/CamelotFactory.json'
-import UniswapV2Pair from '../../build/contracts/CamelotPair.json'
+import ERC20 from '../../artifacts/contracts/test/ERC20.sol/ERC20.json'
+import UniswapV2Factory from '../../artifacts/contracts/CamelotFactory.sol/CamelotFactory.json'
+import UniswapV2Pair from '../../artifacts/contracts/CamelotPair.sol/CamelotPair.json'
 
 interface FactoryFixture {
   factory: Contract
@@ -19,8 +19,8 @@ const overrides = {
 }
 
 export async function factoryFixture(_: Web3Provider, [wallet, other]: Wallet[]): Promise<FactoryFixture> {
-  const factory = await deployContract(wallet, UniswapV2Factory, [other.address], overrides)
 
+  const factory = await deployContract(wallet, UniswapV2Factory, [other.address], overrides)
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 

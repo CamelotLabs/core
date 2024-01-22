@@ -1,19 +1,15 @@
-# Camelot DEX
+# Camelot DEX - AMMv2 Core
 
 https://docs.camelot.exchange/contracts/amm-v2
 
-# Local Development
+```shell
+yarn install
+```
 
-The following assumes the use of `node@>=10`.
-
-## Install Dependencies
-
-`yarn`
-
-## Compile Contracts
-
-`yarn compile`
-
-## Run Tests
-
-`yarn test`
+```shell
+npx hardhat help
+npx hardhat test
+REPORT_GAS=true npx hardhat test
+npx hardhat node
+npx hardhat deploy
+```
