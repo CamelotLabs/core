@@ -25,6 +25,12 @@ module.exports = {
       chainId: 42161,
       skipDryRun: true,
       accounts: [process.env.DEPLOYER_PKEY.toString().trim()],
+    },
+    xai: {
+      url: "https://xai-chain.net/rpc",
+      chainId: 660279,
+      skipDryRun: true,
+      accounts: [process.env.DEPLOYER_PKEY.toString().trim()],
     }
   },
   solidity: {
@@ -51,13 +57,15 @@ module.exports = {
     deployer: {
       default: 0,
       "arbitrumSepolia": process.env.DEPLOYER_ADDRESS.toString().trim(),
-      "arbitrumOne": process.env.DEPLOYER_ADDRESS.toString().trim()
+      "arbitrumOne": process.env.DEPLOYER_ADDRESS.toString().trim(),
+      "xai": process.env.DEPLOYER_ADDRESS.toString().trim()
     }
   },
   etherscan: {
     apiKey: {
       arbitrumOne: process.env.ARBISCAN_API_KEY.toString().trim(),
-      arbitrumSepolia: process.env.ARBISCAN_API_KEY.toString().trim()
+      arbitrumSepolia: process.env.ARBISCAN_API_KEY.toString().trim(),
+      xai: process.env.ARBISCAN_API_KEY.toString().trim()
     },
     customChains: [{
       network: "arbitrumSepolia",
@@ -65,6 +73,13 @@ module.exports = {
       urls: {
         apiURL: "https://api-sepolia.arbiscan.io/api",
         browserURL: "https://sepolia.arbiscan.io"
+      }
+    },{
+      network: "xai",
+      chainId: 660279,
+      urls: {
+        apiURL: "https://explorer.xai-chain.net/api",
+        browserURL: "https://explorer.xai-chain.net/"
       }
     }]
   },
